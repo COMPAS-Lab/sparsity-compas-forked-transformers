@@ -462,6 +462,18 @@ class BertSelfAttention(nn.Module):
 
         return quant_att
 
+    def native_softmax(self, scores, learned_exp_sum=-1.0, learned_threshold=None):
+        import numpy as np
+        with torch.no_grad():
+            # scores[scores < 1.69] = float('-Inf')
+            x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
+            # x_exp[x_exp < np.log(1e-3)] = 0.0
+            x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, 2.0)
+            # x_exp[torch.isnan(x_exp)] = 0.0
+            x_exp_sum = torch.sum(x_exp, dim=-1, keepdim=True)
+            x_exp_sum[x_exp_sum == 0.0] = 1e10
+            return x_exp/x_exp_sum
+
     def forward(
         self,
         hidden_states,
@@ -502,8 +514,8 @@ class BertSelfAttention(nn.Module):
             # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
             attention_scores = attention_scores + attention_mask
         # Normalize the attention scores to probabilities.
-        attention_scores = torch.floor(attention_scores)
-        attention_probs = nn.Softmax(dim=-1)(attention_scores)
+        # attention_probs = nn.Softmax(dim=-1)(attention_scores)
+        attention_probs = self.native_softmax(attention_scores)
         # MARK: customized mask
         for i in range(attention_probs.shape[0]):
             actual_len = torch.sum(attention_mask[i] == 0)
