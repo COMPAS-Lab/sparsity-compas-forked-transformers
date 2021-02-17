@@ -292,8 +292,7 @@ class BertSelfAttention(nn.Module):
             res[att < 2**(min_exp + cutpoints[1])] = float('-Inf')
             return 2**res
     
-    def quantize_attention_linear_slog_clamped_midval(self, att, bits):
-        min_val = 1e-3
+    def quantize_attention_linear_slog_clamped_midval(self, att, bits, min_val=1e-3):
         min_exp = math.log2(min_val)
         base = (0-min_exp) / (2.0**bits - 1)
         cutpoints = [0.0] + [(i+1)*base for i in range(int(2.0**bits-1))]
@@ -348,12 +347,14 @@ class BertSelfAttention(nn.Module):
         min_val = 1e-3
 
         att_std = att.to('cpu').numpy().flatten().astype('float64')
+        # sorting the att above thresholds
         att_std = np.sort(att_std[att_std>min_val])
         num_ranks = int(2.0**bits)
         log_threshs = [min_val,]
 
-        log_steps = np.array([len(att_std)//np.power(2, i) for i in range(1, num_ranks)] + [len(att_std)//np.power(2, num_ranks), ])
-        log_steps = np.cumsum(log_steps)[:-1]
+        # log scale cutpoints
+        log_steps = np.array([len(att_std)//np.power(2, i) for i in range(1, num_ranks)])
+        log_steps = np.cumsum(log_steps)
 
         log_threshs += [ att_std[i] for i in log_steps]
 
@@ -462,13 +463,16 @@ class BertSelfAttention(nn.Module):
 
         return quant_att
 
-    def native_softmax(self, scores, learned_exp_sum=-1.0, learned_threshold=None):
+    def native_softmax(self, scores, learned_exp_sum=-1.0, learned_threshold=0.0):
         import numpy as np
         with torch.no_grad():
-            # scores[scores < 1.69] = float('-Inf')
             x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
-            # x_exp[x_exp < np.log(1e-3)] = 0.0
-            x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, 2.0)
+            # print('max score: ', torch.amax(scores))
+            # x_exp = torch.exp(scores-75.0)
+            if learned_threshold > 0.0:
+                x_exp[x_exp < learned_threshold] = 0.0
+            spars = (torch.sum(x_exp == 0.0) / torch.numel(x_exp)).item()
+            # x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, 2.0)
             # x_exp[torch.isnan(x_exp)] = 0.0
             x_exp_sum = torch.sum(x_exp, dim=-1, keepdim=True)
             x_exp_sum[x_exp_sum == 0.0] = 1e10
@@ -515,7 +519,7 @@ class BertSelfAttention(nn.Module):
             attention_scores = attention_scores + attention_mask
         # Normalize the attention scores to probabilities.
         # attention_probs = nn.Softmax(dim=-1)(attention_scores)
-        attention_probs = self.native_softmax(attention_scores)
+        attention_probs = self.native_softmax(attention_scores, learned_threshold=att_threshold)
         # MARK: customized mask
         for i in range(attention_probs.shape[0]):
             actual_len = torch.sum(attention_mask[i] == 0)
@@ -540,13 +544,13 @@ class BertSelfAttention(nn.Module):
         elif head_mask is not None:
             # mask heads if we want:
             attention_probs = attention_probs * head_mask
-        elif att_threshold > 0.0:
+        # elif att_threshold > 0.0:
             # Different ways of dropping values:
             # dynamic threshold based on row max val:
             # abs_threshold = torch.unsqueeze(torch.max(attention_probs, dim=-1)[0] * att_threshold, dim=-1)
             # attention_probs = attention_probs * (attention_probs > abs_threshold)
             # static threshold:
-            attention_probs = attention_probs * (attention_probs > att_threshold)
+            # attention_probs = attention_probs * (attention_probs > att_threshold)
 
         if quantize > 0.0:
             attention_probs = self.quantize_attention_linear_slog_clamped_midval(attention_probs, quantize)
