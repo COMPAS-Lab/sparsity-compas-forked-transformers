@@ -472,6 +472,7 @@ class BertSelfAttention(nn.Module):
                 device = 'cpu' if scores.get_device() < 0 else scores.get_device()
                 max_scrs = (max_scrs+learned_threshold).to(device)
                 x_exp = torch.exp(scores-max_scrs)
+                x_exp[x_exp > 1.0] = 1.0
             # print('max score: ', torch.amax(scores))
             # x_exp = torch.exp(scores-75.0)
             if learned_threshold > 0.0:
