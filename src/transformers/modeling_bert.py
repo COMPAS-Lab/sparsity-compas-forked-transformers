@@ -463,19 +463,23 @@ class BertSelfAttention(nn.Module):
 
         return quant_att
 
-    def native_softmax(self, scores, learned_exp_sum=-1.0, learned_threshold=0.0):
+    def native_softmax(self, scores, learned_exp_sum=-1.0, learned_threshold=0.0, max_scrs=None):
         import numpy as np
         with torch.no_grad():
-            x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
+            if max_scrs is None:
+                x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
+            else:
+                device = 'cpu' if scores.get_device() < 0 else scores.get_device()
+                max_scrs = (max_scrs+learned_threshold).to(device)
+                x_exp = torch.exp(scores-max_scrs)
             # print('max score: ', torch.amax(scores))
             # x_exp = torch.exp(scores-75.0)
             if learned_threshold > 0.0:
                 x_exp[x_exp < learned_threshold] = 0.0
-            spars = (torch.sum(x_exp == 0.0) / torch.numel(x_exp)).item()
             # x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, 2.0)
             # x_exp[torch.isnan(x_exp)] = 0.0
             x_exp_sum = torch.sum(x_exp, dim=-1, keepdim=True)
-            x_exp_sum[x_exp_sum == 0.0] = 1e10
+            x_exp_sum[x_exp_sum == 0.0] = 1e2
             return x_exp/x_exp_sum
 
     def forward(
@@ -487,7 +491,8 @@ class BertSelfAttention(nn.Module):
         encoder_attention_mask=None,
         output_attentions=False,
         att_threshold=0.0,
-        quantize=0.0
+        quantize=0.0,
+        layer_idx=0,
     ):
         # hidden states shape: (instances, seq_len, 768)
         mixed_query_layer = self.query(hidden_states)
@@ -519,7 +524,17 @@ class BertSelfAttention(nn.Module):
             attention_scores = attention_scores + attention_mask
         # Normalize the attention scores to probabilities.
         # attention_probs = nn.Softmax(dim=-1)(attention_scores)
-        attention_probs = self.native_softmax(attention_scores, learned_threshold=att_threshold)
+        # prepare profiled max values:
+        import numpy as np
+        profile_path = "params/scrs_profile.npy"
+        res = None
+
+        if os.path.isfile(profile_path):
+            with open(profile_path, "rb") as profile_file:
+                res = np.load(profile_file)
+
+        curr_layer_maxscrs_profile = torch.Tensor(np.reshape(res[layer_idx], (1, 12, 1, 1))) if res is not None else None
+        attention_probs = self.native_softmax(attention_scores, learned_threshold=att_threshold, max_scrs=curr_layer_maxscrs_profile)
         # MARK: customized mask
         for i in range(attention_probs.shape[0]):
             actual_len = torch.sum(attention_mask[i] == 0)
@@ -621,7 +636,8 @@ class BertAttention(nn.Module):
         encoder_attention_mask=None,
         output_attentions=False,
         att_threshold=0.0,
-        quantize=0.0
+        quantize=0.0,
+        layer_idx=0,
     ):
         self_outputs, pipeline_probes = self.self(
             hidden_states,
@@ -631,7 +647,8 @@ class BertAttention(nn.Module):
             encoder_attention_mask,
             output_attentions,
             att_threshold,
-            quantize
+            quantize,
+            layer_idx=layer_idx
         )
         # self_outputs[0]: context; self_outputs[1:]: attentions
         # pipeline_probes: (q, k, v, attention_scores)
@@ -747,7 +764,8 @@ class BertLayer(nn.Module):
         att_threshold=0.0,
         hs_threshold=0.0,
         quantize_att_bits=0.0,
-        quantize_hstate_bits=0.0
+        quantize_hstate_bits=0.0,
+        layer_idx=0,
     ):
 
         # MARK: hidden states quantization for eacy layer
@@ -760,7 +778,8 @@ class BertLayer(nn.Module):
             head_mask,
             output_attentions=output_attentions,
             att_threshold=att_threshold,
-            quantize=quantize_att_bits
+            quantize=quantize_att_bits,
+            layer_idx=layer_idx
         )
         attention_output = self_attention_outputs[0]
         outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
@@ -853,7 +872,8 @@ class BertEncoder(nn.Module):
                     att_threshold,
                     hs_threshold,
                     quantize_att_bits,
-                    quantize_hstate_bits
+                    quantize_hstate_bits,
+                    layer_idx=i
                 )
             hidden_states = layer_outputs[0]
             if output_attentions:
