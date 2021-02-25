@@ -470,7 +470,6 @@ class BertSelfAttention(nn.Module):
                 x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
             else:
                 device = 'cpu' if scores.get_device() < 0 else scores.get_device()
-                max_scrs = (max_scrs+learned_threshold).to(device)
                 x_exp = torch.exp(scores-max_scrs)
                 x_exp[x_exp > 1.0] = 1.0
             # print('max score: ', torch.amax(scores))
@@ -480,7 +479,7 @@ class BertSelfAttention(nn.Module):
             # x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, 2.0)
             # x_exp[torch.isnan(x_exp)] = 0.0
             x_exp_sum = torch.sum(x_exp, dim=-1, keepdim=True)
-            x_exp_sum[x_exp_sum == 0.0] = 1e2
+            x_exp_sum[x_exp_sum == 0.0] = 1e5
             return x_exp/x_exp_sum
 
     def forward(
@@ -527,7 +526,7 @@ class BertSelfAttention(nn.Module):
         # attention_probs = nn.Softmax(dim=-1)(attention_scores)
         # prepare profiled max values:
         import numpy as np
-        profile_path = "params/scrs_profile.npy"
+        profile_path = "params/maxscrs_profile.npy"
         res = None
 
         if os.path.isfile(profile_path):
