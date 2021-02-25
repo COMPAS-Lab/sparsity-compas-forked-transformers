@@ -470,7 +470,7 @@ class BertSelfAttention(nn.Module):
                 x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
             else:
                 device = 'cpu' if scores.get_device() < 0 else scores.get_device()
-                x_exp = torch.exp(scores-max_scrs)
+                x_exp = torch.exp(scores-max_scrs.to(device))
                 x_exp[x_exp > 1.0] = 1.0
             # print('max score: ', torch.amax(scores))
             # x_exp = torch.exp(scores-75.0)
