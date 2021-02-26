@@ -465,17 +465,14 @@ class BertSelfAttention(nn.Module):
 
     def native_softmax(self, scores, learned_exp_sum=-1.0, learned_threshold=0.0, max_scrs=None):
         import numpy as np
+        if max_scrs is not None:
+            device = 'cpu' if scores.get_device() < 0 else scores.get_device()
+            max_scrs = max_scrs.to(device)
+            scores[scores < max_scrs] = float('-1e5')
         with torch.no_grad():
-            if max_scrs is None:
-                x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
-            else:
-                device = 'cpu' if scores.get_device() < 0 else scores.get_device()
-                x_exp = torch.exp(scores-max_scrs.to(device))
-                x_exp[x_exp > 1.0] = 1.0
-            # print('max score: ', torch.amax(scores))
+            x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
+            # x_exp[x_exp > 1.0] = 1.0
             # x_exp = torch.exp(scores-75.0)
-            if learned_threshold > 0.0:
-                x_exp[x_exp < learned_threshold] = 0.0
             # x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, 2.0)
             # x_exp[torch.isnan(x_exp)] = 0.0
             x_exp_sum = torch.sum(x_exp, dim=-1, keepdim=True)
