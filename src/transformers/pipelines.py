@@ -1707,6 +1707,7 @@ class QuestionAnsweringPipeline(Pipeline):
         kwargs.setdefault("quantize_att_bits", 0.0)
         kwargs.setdefault("quantize_hstate_bits", 0.0)
         kwargs.setdefault("head_mask", None)
+        kwargs.setdefault("scrs_thresholds", None)
 
         if kwargs["topk"] < 1:
             raise ValueError("topk parameter should be >= 1 (got {})".format(kwargs["topk"]))
@@ -1753,6 +1754,7 @@ class QuestionAnsweringPipeline(Pipeline):
                         fw_args["output_attentions"] = True
                         fw_args["output_hidden_states"] = True
                         fw_args["output_pipeline_prbs"] = True
+                        fw_args["scrs_thresholds"] = kwargs["scrs_thresholds"]
                         attn_mask = (torch.sum(fw_args['attention_mask'], dim=-1)).cpu().numpy()
                         start, end, hidden_states, attentions, pipeline_prbs = self.model(**fw_args)
                         def convert_hid_to_np(x): return np.asarray([layer.cpu().numpy() for layer in x])

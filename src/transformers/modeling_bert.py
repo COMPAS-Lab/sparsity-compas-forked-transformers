@@ -463,12 +463,12 @@ class BertSelfAttention(nn.Module):
 
         return quant_att
 
-    def native_softmax(self, scores, learned_exp_sum=-1.0, learned_threshold=0.0, max_scrs=None):
+    def native_softmax(self, scores, scrs_threshold=None):
         import numpy as np
-        if max_scrs is not None:
+        if scrs_threshold is not None:
             device = 'cpu' if scores.get_device() < 0 else scores.get_device()
-            max_scrs = max_scrs.to(device)
-            scores[scores < max_scrs] = float('-1e5')
+            scrs_threshold = scrs_threshold.to(device)
+            scores[scores < scrs_threshold] = float('-1e5')
         with torch.no_grad():
             x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
             # x_exp[x_exp > 1.0] = 1.0
@@ -490,6 +490,7 @@ class BertSelfAttention(nn.Module):
         att_threshold=0.0,
         quantize=0.0,
         layer_idx=0,
+        scrs_thresholds=None,
     ):
         # hidden states shape: (instances, seq_len, 768)
         mixed_query_layer = self.query(hidden_states)
@@ -523,15 +524,9 @@ class BertSelfAttention(nn.Module):
         # attention_probs = nn.Softmax(dim=-1)(attention_scores)
         # prepare profiled max values:
         import numpy as np
-        profile_path = "params/maxscrs_profile.npy"
-        res = None
-
-        if os.path.isfile(profile_path):
-            with open(profile_path, "rb") as profile_file:
-                res = np.load(profile_file)
-
-        curr_layer_maxscrs_profile = torch.Tensor(np.reshape(res[layer_idx], (1, 12, 1, 1))) if res is not None else None
-        attention_probs = self.native_softmax(attention_scores, learned_threshold=att_threshold, max_scrs=curr_layer_maxscrs_profile)
+        curr_layer_maxscrs_profile = torch.Tensor(np.reshape(scrs_thresholds[layer_idx], (1, 12, 1, 1))) \
+                                        if scrs_thresholds is not None else None
+        attention_probs = self.native_softmax(attention_scores, scrs_threshold=curr_layer_maxscrs_profile)
         # MARK: customized mask
         for i in range(attention_probs.shape[0]):
             actual_len = torch.sum(attention_mask[i] == 0)
@@ -635,6 +630,7 @@ class BertAttention(nn.Module):
         att_threshold=0.0,
         quantize=0.0,
         layer_idx=0,
+        scrs_thresholds=None,
     ):
         self_outputs, pipeline_probes = self.self(
             hidden_states,
@@ -645,7 +641,8 @@ class BertAttention(nn.Module):
             output_attentions,
             att_threshold,
             quantize,
-            layer_idx=layer_idx
+            layer_idx=layer_idx,
+            scrs_thresholds=scrs_thresholds,
         )
         # self_outputs[0]: context; self_outputs[1:]: attentions
         # pipeline_probes: (q, k, v, attention_scores)
@@ -763,6 +760,7 @@ class BertLayer(nn.Module):
         quantize_att_bits=0.0,
         quantize_hstate_bits=0.0,
         layer_idx=0,
+        scrs_thresholds=None,
     ):
 
         # MARK: hidden states quantization for eacy layer
@@ -776,7 +774,8 @@ class BertLayer(nn.Module):
             output_attentions=output_attentions,
             att_threshold=att_threshold,
             quantize=quantize_att_bits,
-            layer_idx=layer_idx
+            layer_idx=layer_idx,
+            scrs_thresholds=scrs_thresholds,
         )
         attention_output = self_attention_outputs[0]
         outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
@@ -832,7 +831,8 @@ class BertEncoder(nn.Module):
         att_threshold=0.0,
         hs_threshold=0.0,
         quantize_att_bits=0.0,
-        quantize_hstate_bits=0.0
+        quantize_hstate_bits=0.0,
+        scrs_thresholds=None,
     ):
         all_hidden_states = () if output_hidden_states else None
         all_attentions = () if output_attentions else None
@@ -870,7 +870,8 @@ class BertEncoder(nn.Module):
                     hs_threshold,
                     quantize_att_bits,
                     quantize_hstate_bits,
-                    layer_idx=i
+                    layer_idx=i,
+                    scrs_thresholds=scrs_thresholds
                 )
             hidden_states = layer_outputs[0]
             if output_attentions:
@@ -1155,7 +1156,8 @@ class BertModel(BertPreTrainedModel):
         att_threshold=0.0,
         hs_threshold=0.0,
         quantize_att_bits=0.0,
-        quantize_hstate_bits=0.0
+        quantize_hstate_bits=0.0, 
+        scrs_thresholds=None,
     ):
         r"""
         encoder_hidden_states  (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, sequence_length, hidden_size)`, `optional`):
@@ -1227,7 +1229,8 @@ class BertModel(BertPreTrainedModel):
             att_threshold=att_threshold,
             hs_threshold=hs_threshold,
             quantize_att_bits=quantize_att_bits,
-            quantize_hstate_bits=quantize_hstate_bits
+            quantize_hstate_bits=quantize_hstate_bits,
+            scrs_thresholds=scrs_thresholds
         )
         sequence_output = encoder_outputs[0]
         pooled_output = self.pooler(sequence_output)
