@@ -463,18 +463,19 @@ class BertSelfAttention(nn.Module):
 
         return quant_att
 
-    def native_softmax(self, scores, scrs_threshold=None):
+    def native_softmax(self, scores, scrs_threshold=None, quantize_bits=0.0):
         import numpy as np
         if scrs_threshold is not None:
             device = 'cpu' if scores.get_device() < 0 else scores.get_device()
             scrs_threshold = scrs_threshold.to(device)
-            scores[scores < scrs_threshold] = float('-1e5')
+            scores[scores < scrs_threshold] = float('-inf')
         with torch.no_grad():
-            x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
-            # x_exp[x_exp > 1.0] = 1.0
-            # x_exp = torch.exp(scores-75.0)
-            # x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, 2.0)
-            # x_exp[torch.isnan(x_exp)] = 0.0
+            # x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
+            x_exp = torch.exp(scores-75.0)
+            x_exp[x_exp > 1.0] = 1.0
+            if quantize_bits > 0.0:
+                x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, quantize_bits)
+            x_exp[torch.isnan(x_exp)] = 0.0
             x_exp_sum = torch.sum(x_exp, dim=-1, keepdim=True)
             x_exp_sum[x_exp_sum == 0.0] = 1e5
             return x_exp/x_exp_sum
@@ -526,7 +527,7 @@ class BertSelfAttention(nn.Module):
         import numpy as np
         curr_layer_maxscrs_profile = torch.Tensor(np.reshape(scrs_thresholds[layer_idx], (1, 12, 1, 1))) \
                                         if scrs_thresholds is not None else None
-        attention_probs = self.native_softmax(attention_scores, scrs_threshold=curr_layer_maxscrs_profile)
+        attention_probs = self.native_softmax(attention_scores, scrs_threshold=curr_layer_maxscrs_profile, quantize_bits=quantize)
         # MARK: customized mask
         for i in range(attention_probs.shape[0]):
             actual_len = torch.sum(attention_mask[i] == 0)
@@ -559,8 +560,8 @@ class BertSelfAttention(nn.Module):
             # static threshold:
             # attention_probs = attention_probs * (attention_probs > att_threshold)
 
-        if quantize > 0.0:
-            attention_probs = self.quantize_attention_linear_slog_clamped_midval(attention_probs, quantize)
+        # if quantize > 0.0:
+        #     attention_probs = self.quantize_attention_linear_slog_clamped_midval(attention_probs, quantize)
 
         # context layer size: (instance, head, seq_len, 64)
         context_layer = torch.matmul(attention_probs, value_layer)
