@@ -768,6 +768,7 @@ class RobertaForQuestionAnswering(BertPreTrainedModel):
         quantize_att_bits=0.0,
         quantize_hstate_bits=0.0,
         scrs_thresholds=None,
+        scrs_max=None,
     ):
         r"""
         start_positions (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`):
@@ -796,7 +797,8 @@ class RobertaForQuestionAnswering(BertPreTrainedModel):
             hs_threshold=hs_threshold,
             quantize_att_bits=quantize_att_bits,
             quantize_hstate_bits=quantize_hstate_bits,
-            scrs_thresholds=scrs_thresholds
+            scrs_thresholds=scrs_thresholds,
+            scrs_max=scrs_max
         )
 
         sequence_output = outputs[0]
