@@ -272,12 +272,20 @@ class BertSelfAttention(nn.Module):
             return res
 
     def quantize_scrs_range_linear_clamped_midval(self, scrs, bits, upper, lower):
+        device = 'cpu' if scrs.get_device() < 0 else scrs.get_device()
         with torch.no_grad():
             base = (upper - lower) / (2.0**bits)
-            cutpoints = [0.0] + [(i+1)*base for i in range(int(2.0**bits))]
+            cutpoints = [(i+1)*base for i in range(int(2.0**bits))]
             offset_val = (cutpoints[0] + cutpoints[1]) / 2
             res = torch.floor((scrs-lower) / base) * base + offset_val + lower
-            res[scrs < cutpoints[1]+lower] = float('-inf')
+            res[scrs < cutpoints[1 ]+lower] = float('-inf')
+            max_quant_val = int(2.0**bits) * base + offset_val + lower
+            # for res_inst, max_inst in zip(res, max_quant_val):
+            #     for res_head, max_head in zip(res_inst, max_inst):
+            #         res_head[res_head > max_head.item()] = max_head.item()
+            for inst in range(res.shape[0]):
+                for head in range(res.shape[1]):
+                    res[inst][head][res[inst][head] > max_quant_val[inst][head].item()] = max_quant_val[inst][head].item()
             return res
 
     def quantize_attention_linear_slog(self, att, bits):
@@ -490,7 +498,7 @@ class BertSelfAttention(nn.Module):
             x_exp[torch.isnan(x_exp)] = 0.0
             x_exp_sum = torch.sum(x_exp, dim=-1, keepdim=True)
             x_exp_sum[x_exp_sum == 0.0] = 1e5
-            return x_exp/x_exp_sum
+            return x_exp/x_exp_sum, scores
 
     def forward(
         self,
@@ -538,11 +546,18 @@ class BertSelfAttention(nn.Module):
         # attention_probs = nn.Softmax(dim=-1)(attention_scores)
         # prepare profiled max values:
         import numpy as np
+        profile_shape = (attention_scores.shape[0], attention_scores.shape[1], 1, 1)
         curr_layer_scrs_thres_profile = torch.Tensor(np.reshape(scrs_thresholds[layer_idx], (1, 12, 1, 1))) \
                                         if scrs_thresholds is not None else None
+        if curr_layer_scrs_thres_profile is not None and profile_shape[0] > 1:
+            curr_layer_scrs_thres_profile = torch.cat([curr_layer_scrs_thres_profile]*profile_shape[0], dim=0)
+
         curr_layer_scrs_max_profile = torch.Tensor(np.reshape(scrs_max[layer_idx], (1, 12, 1, 1))) \
                                         if scrs_max is not None else None
-        attention_probs = self.native_softmax(attention_scores, scrs_threshold=curr_layer_scrs_thres_profile, 
+        if curr_layer_scrs_max_profile is not None and profile_shape[0] > 1:
+            curr_layer_scrs_max_profile = torch.cat([curr_layer_scrs_max_profile]*profile_shape[0], dim=0)
+
+        attention_probs, attention_scores = self.native_softmax(attention_scores, scrs_threshold=curr_layer_scrs_thres_profile, 
                                                 scrs_max=curr_layer_scrs_max_profile, quantize_bits=quantize)
         # MARK: customized mask
         for i in range(attention_probs.shape[0]):
