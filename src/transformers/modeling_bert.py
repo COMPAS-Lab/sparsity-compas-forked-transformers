@@ -278,7 +278,7 @@ class BertSelfAttention(nn.Module):
             cutpoints = [(i+1)*base for i in range(int(2.0**bits))]
             offset_val = (cutpoints[0] + cutpoints[1]) / 2
             res = torch.floor((scrs-lower) / base) * base + offset_val + lower
-            res[scrs < cutpoints[1 ]+lower] = float('-inf')
+            res[scrs < cutpoints[1]+lower] = float('-inf')
             max_quant_val = int(2.0**bits) * base + offset_val + lower
             # for res_inst, max_inst in zip(res, max_quant_val):
             #     for res_head, max_head in zip(res_inst, max_inst):
@@ -319,6 +319,37 @@ class BertSelfAttention(nn.Module):
             res[att < min_val] = float('-Inf')
             return 2**res
 
+    def quantize_scrs_range_log_clamped_midval(self, scrs, bits, upper, lower):
+        device = 'cpu' if scrs.get_device() < 0 else scrs.get_device()
+        offset = (lower <= 0.0) * torch.ceil(torch.abs(lower))
+        min_exp = torch.log2(lower + offset)
+        max_exp = torch.log2(upper + offset)
+
+        base = (max_exp-min_exp) / (2.0**bits - 1)
+        cutpoints = [(i+1)*base for i in range(int(2.0**bits-1))]
+        exp_offset_val = (cutpoints[0]+cutpoints[1])/2.0
+        scrs += offset
+        with torch.no_grad():
+            scrs = torch.log2(scrs)-min_exp
+            scrs[torch.isnan(scrs)] = float('-inf')
+            res = torch.floor(scrs / base) * base + exp_offset_val + min_exp
+            res[scrs < cutpoints[0]] = float('-inf')
+
+            max_quant_exp = int(2.0**bits-1) * base + exp_offset_val + min_exp
+            # for res_inst, max_inst in zip(res, max_quant_exp):
+            #     for res_head, max_head in zip(res_inst, max_inst):
+            #         res_head[res_head > max_head.item()] = max_head.item()
+            for inst in range(res.shape[0]):
+                for head in range(res.shape[1]):
+                    res[inst][head][res[inst][head] > max_quant_exp[inst][head].item()] = max_quant_exp[inst][head].item()
+            
+            res = 2**res
+            res[res == 0.0] = float('-inf')
+            # from itertools import groupby
+            # import numpy as np
+            # probe = res.detach().cpu().numpy()
+            # check = [(x, len(list(y))) for x, y in groupby(np.sort((np.floor(probe[0][2]*1000)).astype('int').flatten()))]
+            return res - offset
 
     def quantize_attention_uniform_slinear_clamped_mean(self, att, bits):
         import numpy as np
@@ -486,7 +517,7 @@ class BertSelfAttention(nn.Module):
             device = 'cpu' if scores.get_device() < 0 else scores.get_device()
             scrs_threshold = scrs_threshold.to(device)
             scrs_max = scrs_max.to(device)
-            scores = self.quantize_scrs_range_linear_clamped_midval(scores, quantize_bits, scrs_max, scrs_threshold)
+            scores = self.quantize_scrs_range_log_clamped_midval(scores, quantize_bits, scrs_max, scrs_threshold)
         elif scrs_threshold is not None:
             device = 'cpu' if scores.get_device() < 0 else scores.get_device()
             scrs_threshold = scrs_threshold.to(device)
