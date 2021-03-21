@@ -513,20 +513,29 @@ class BertSelfAttention(nn.Module):
 
     def native_softmax(self, scores, scrs_threshold=None, scrs_max=None, quantize_bits=0.0):
         import numpy as np
-        if scrs_threshold is not None and scrs_max is not None and quantize_bits > 0.0:
-            device = 'cpu' if scores.get_device() < 0 else scores.get_device()
-            scrs_threshold = scrs_threshold.to(device)
-            scrs_max = scrs_max.to(device)
-            scores = self.quantize_scrs_range_log_clamped_midval(scores, quantize_bits, scrs_max, scrs_threshold)
-        elif scrs_threshold is not None:
+        device = 'cpu' if scores.get_device() < 0 else scores.get_device()
+        # if scrs_threshold is not None and scrs_max is not None and quantize_bits > 0.0:
+        #     scrs_threshold = scrs_threshold.to(device)
+        #     scrs_max = scrs_max.to(device)
+        #     scores = self.quantize_scrs_range_log_clamped_midval(scores, quantize_bits, scrs_max, scrs_threshold)
+        # elif scrs_threshold is not None:
+        
+        if scrs_threshold is not None:
             device = 'cpu' if scores.get_device() < 0 else scores.get_device()
             scrs_threshold = scrs_threshold.to(device)
             scores[scores < scrs_threshold] = float('-inf')
+
         with torch.no_grad():
-            x_exp = torch.exp(scores-torch.amax(scores, dim=-1, keepdim=True))
-            # x_exp = torch.exp(scores-75.0)
-            x_exp[x_exp > 1.0] = 1.0
+            if scrs_max is not None:
+                scrs_max = scrs_max.to(device)
+                x_exp = torch.exp(scores - scrs_max)
+            else:
+                x_exp = torch.exp(scores - torch.amax(scores, dim=-1, keepdim=True))
             x_exp[torch.isnan(x_exp)] = 0.0
+            x_exp[x_exp > 1.0] = 1.0
+            if quantize_bits > 0.0:
+                x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, quantize_bits, min_val=1e-3)
+            # x_exp = torch.exp(scores-75.0)
             x_exp_sum = torch.sum(x_exp, dim=-1, keepdim=True)
             x_exp_sum[x_exp_sum == 0.0] = 1e5
             return x_exp/x_exp_sum, scores
