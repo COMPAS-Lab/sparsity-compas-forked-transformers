@@ -310,14 +310,24 @@ class BertSelfAttention(nn.Module):
             return 2**res
     
     def quantize_attention_linear_slog_clamped_midval(self, att, bits, min_val=1e-3):
-        min_exp = math.log2(min_val)
+        from itertools import groupby
+        import numpy as np
+        min_exp = torch.log2(min_val)
         base = (0-min_exp) / (2.0**bits - 1)
-        cutpoints = [0.0] + [(i+1)*base for i in range(int(2.0**bits-1))]
-        offset_val = (cutpoints[0]+cutpoints[1])/2.0
+        cutpoints = [(i+1)*base for i in range(int(2.0**bits-1))]
+        offset_val = base/2.0
         with torch.no_grad():
             res = torch.floor((torch.log2(att)-min_exp) / base) * base + offset_val + min_exp
+            max_quant_exp = cutpoints[-1] + min_exp
+            max_quant_exp_val = cutpoints[-2] + offset_val + min_exp
+            
+            for inst in range(res.shape[0]):
+                for head in range(res.shape[1]):
+                    res[inst][head][res[inst][head] > max_quant_exp[inst][head].item()] = max_quant_exp_val[inst][head].item()
+            
             res[att < min_val] = float('-Inf')
-            return 2**res
+            res = 2**res
+            return res
 
     def quantize_scrs_range_log_clamped_midval(self, scrs, bits, upper, lower):
         device = 'cpu' if scrs.get_device() < 0 else scrs.get_device()
@@ -521,9 +531,7 @@ class BertSelfAttention(nn.Module):
         # elif scrs_threshold is not None:
         
         if scrs_threshold is not None:
-            device = 'cpu' if scores.get_device() < 0 else scores.get_device()
             scrs_threshold = scrs_threshold.to(device)
-            scores[scores < scrs_threshold] = float('-inf')
 
         with torch.no_grad():
             if scrs_max is not None:
@@ -531,14 +539,22 @@ class BertSelfAttention(nn.Module):
                 x_exp = torch.exp(scores - scrs_max)
             else:
                 x_exp = torch.exp(scores - torch.amax(scores, dim=-1, keepdim=True))
+
             x_exp[torch.isnan(x_exp)] = 0.0
             x_exp[x_exp > 1.0] = 1.0
             if quantize_bits > 0.0:
-                x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, quantize_bits, min_val=1e-3)
-            # x_exp = torch.exp(scores-75.0)
+                x_exp = self.quantize_attention_linear_slog_clamped_midval(x_exp, quantize_bits, min_val=scrs_threshold)
+            
+            if scrs_threshold is not None:
+                x_exp[x_exp < scrs_threshold] = 0.0
+
             x_exp_sum = torch.sum(x_exp, dim=-1, keepdim=True)
             x_exp_sum[x_exp_sum == 0.0] = 1e5
-            return x_exp/x_exp_sum, scores
+
+            if scrs_max is not None and scrs_threshold is None:
+                return x_exp/x_exp_sum, x_exp
+            else:
+                return x_exp/x_exp_sum, scores
 
     def forward(
         self,
