@@ -1707,6 +1707,8 @@ class QuestionAnsweringPipeline(Pipeline):
         kwargs.setdefault("quantize_att_bits", 0.0)
         kwargs.setdefault("quantize_hstate_bits", 0.0)
         kwargs.setdefault("head_mask", None)
+        kwargs.setdefault("start_positions", None)
+        kwargs.setdefault("end_positions", None)
 
         if kwargs["topk"] < 1:
             raise ValueError("topk parameter should be >= 1 (got {})".format(kwargs["topk"]))
@@ -1753,8 +1755,15 @@ class QuestionAnsweringPipeline(Pipeline):
                         fw_args["output_attentions"] = True
                         fw_args["output_hidden_states"] = True
                         fw_args["output_pipeline_prbs"] = True
+                        fw_args["start_positions"] = kwargs["start_positions"]
+                        fw_args["end_positions"] = kwargs["end_positions"]
+
                         attn_mask = (torch.sum(fw_args['attention_mask'], dim=-1)).cpu().numpy()
-                        start, end, hidden_states, attentions, pipeline_prbs = self.model(**fw_args)
+                        if fw_args["start_positions"] != None:
+                            loss ,start, end, hidden_states, attentions, pipeline_prbs = self.model(**fw_args)
+                        else:
+                            start, end, hidden_states, attentions, pipeline_prbs = self.model(**fw_args)
+
                         def convert_hid_to_np(x): return np.asarray([layer.cpu().numpy() for layer in x])
                         def convert_att_to_np(x): 
                             temp, res = np.asarray([layer.cpu().numpy() for layer in x]), []
@@ -1834,8 +1843,15 @@ class QuestionAnsweringPipeline(Pipeline):
             all_answers += answers
 
         if len(all_answers) == 1:
-            return all_answers[0]
-        return all_answers
+            if fw_args["start_positions"] != None:
+                return all_answers[0], loss
+            else: 
+                return all_answers[0]
+        
+        if fw_args["start_positions"] != None:
+            return all_answers, loss
+        else:
+            return all_answers
 
     def decode(self, start: np.ndarray, end: np.ndarray, topk: int, max_answer_len: int) -> Tuple:
         """

@@ -232,6 +232,8 @@ class BertSelfAttention(nn.Module):
         self.value = nn.Linear(config.hidden_size, self.all_head_size)
 
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
+        self.quantizer = BertQuantizer(config)
+        self.quantize=False
 
     def transpose_for_scores(self, x):
         new_x_shape = x.size()[:-1] + (self.num_attention_heads, self.attention_head_size)
@@ -293,14 +295,15 @@ class BertSelfAttention(nn.Module):
             return 2**res
     
     def quantize_attention_linear_slog_clamped_midval(self, att, bits, min_val=1e-3):
-        min_exp = math.log2(min_val)
-        base = (0-min_exp) / (2.0**bits - 1)
+        min_exp, max_exp = math.log2(min_val), math.log2(1.0) #Softmax maximum value
+        base = (max_exp-min_exp) / (2.0**bits - 1)
         cutpoints = [0.0] + [(i+1)*base for i in range(int(2.0**bits-1))]
         offset_val = (cutpoints[0]+cutpoints[1])/2.0
         with torch.no_grad():
             res = torch.floor((torch.log2(att)-min_exp) / base) * base + offset_val + min_exp
             res[att < min_val] = float('-Inf')
-            return 2**res
+            #returns (quantized att, boundaries)
+            return (2**res, [2**(i+min_exp) for i in cutpoints] )
 
 
     def quantize_attention_uniform_slinear_clamped_mean(self, att, bits):
@@ -547,7 +550,7 @@ class BertSelfAttention(nn.Module):
                 new_mask = new_mask.to(attention_probs.get_device())
             attention_probs[i] = attention_probs[i] * new_mask 
 
-
+        attention_probs = self.quantizer(attention_probs, quantize=self.quantize)
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
         attention_probs = self.dropout(attention_probs)
@@ -567,8 +570,9 @@ class BertSelfAttention(nn.Module):
             # static threshold:
             # attention_probs = attention_probs * (attention_probs > att_threshold)
 
-        if quantize > 0.0:
-            attention_probs = self.quantize_attention_linear_slog_clamped_midval(attention_probs, quantize)
+        if quantize > 0.0 and self.quantize == False:
+            attention_probs, boundaries = self.quantize_attention_linear_slog_clamped_midval(attention_probs, quantize)
+            self.quantizer.init_weights(bounds=torch.FloatTensor(boundaries))
 
         # context layer size: (instance, head, seq_len, 64)
         context_layer = torch.matmul(attention_probs, value_layer)
@@ -586,6 +590,46 @@ class BertSelfAttention(nn.Module):
         outputs = (context_layer, attention_probs) if output_attentions else (context_layer,)
         pipeline_probes = qkv_res + (attention_scores, att_out_probs, )
         return outputs, pipeline_probes
+
+
+class BertQuantizer(nn.Module):
+    #Called from one/more of the existing modules
+    def __init__(self, config):
+        super().__init__()
+        
+        self.lower_bounds = None #bounds[:-1]
+        self.upper_bounds = None #bounds[1:]
+        self.vals = None
+        self.num_funcs = None
+    
+    def init_weights(self, bounds:torch.Tensor=None, vals:torch.Tensor=None):
+
+        if bounds is None: bounds = torch.rand(8).uniform_(0, 1.0)
+        #Need to add to nn.Parameter based on type of optim
+        bounds = torch.sort(bounds)[0]
+
+        self.lower_bounds = bounds[:-1]
+        self.upper_bounds = bounds[1:]
+        if vals is None:
+            self.vals = nn.Parameter(torch.stack((self.lower_bounds, self.upper_bounds)).mean(axis=0))
+        else:
+            self.vals = nn.Parameter(vals)
+
+        assert self.lower_bounds.shape == self.upper_bounds.shape == self.vals.shape
+        self.num_funcs = len(self.lower_bounds)
+    
+    def forward(self, input_tensor:torch.Tensor, quantize=True):
+        #Basic quantization
+        if quantize == False:
+            return input_tensor
+        
+        device = input_tensor.device
+        preds, zeros = torch.zeros(input_tensor.shape).to(device), torch.zeros(input_tensor.shape).to(device)
+        for i in range(self.num_funcs):
+            val = torch.ones(input_tensor.shape).to(device)*self.vals[i]
+            preds += torch.where((self.lower_bounds[i].to(device)<=input_tensor)&(input_tensor<=self.upper_bounds[i].to(device)), val, zeros)
+        
+        return preds
 
 
 class BertSelfOutput(nn.Module):
