@@ -526,7 +526,7 @@ class BertSelfAttention(nn.Module):
             # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
             attention_scores = attention_scores + attention_mask
         # Normalize the attention scores to probabilities.
-        # attention_probs = nn.Softmax(dim=-1)(attention_scores)
+        #attention_probs = nn.Softmax(dim=-1)(attention_scores)
         # prepare profiled max values:
         import numpy as np
         profile_path = "params/maxscrs_profile.npy"

@@ -1707,8 +1707,6 @@ class QuestionAnsweringPipeline(Pipeline):
         kwargs.setdefault("quantize_att_bits", 0.0)
         kwargs.setdefault("quantize_hstate_bits", 0.0)
         kwargs.setdefault("head_mask", None)
-        kwargs.setdefault("start_positions", None)
-        kwargs.setdefault("end_positions", None)
 
         if kwargs["topk"] < 1:
             raise ValueError("topk parameter should be >= 1 (got {})".format(kwargs["topk"]))
@@ -1732,10 +1730,12 @@ class QuestionAnsweringPipeline(Pipeline):
             for example in examples
         ]
         all_answers = []
+        total_loss = [0, 0]
         for features, example in zip(features_list, examples):
-            model_input_names = self.tokenizer.model_input_names + ["input_ids"]
+            model_input_names = self.tokenizer.model_input_names + ["input_ids", "start_position", "end_position"]
             fw_args = {k: [feature.__dict__[k] for feature in features] for k in model_input_names}
-
+            fw_args["start_positions"] = fw_args.pop("start_position")
+            fw_args["end_positions"] = fw_args.pop("end_position")
             # Manage tensor allocation on correct device
             with self.device_placement():
                 if self.framework == "tf":
@@ -1743,7 +1743,7 @@ class QuestionAnsweringPipeline(Pipeline):
                     start, end = self.model(fw_args)[:2]
                     start, end = start.numpy(), end.numpy()
                 else:
-                    with torch.no_grad():
+                    #with torch.no_grad():
                         # Retrieve the score for the context tokens only (removing question tokens)
                         fw_args = {k: torch.tensor(v, device=self.device) for (k, v) in fw_args.items()}
                         if kwargs["head_mask"] is not None:
@@ -1755,29 +1755,33 @@ class QuestionAnsweringPipeline(Pipeline):
                         fw_args["output_attentions"] = True
                         fw_args["output_hidden_states"] = True
                         fw_args["output_pipeline_prbs"] = True
-                        fw_args["start_positions"] = kwargs["start_positions"]
-                        fw_args["end_positions"] = kwargs["end_positions"]
+                        #fw_args["start_positions"] = kwargs["start_positions"].to(self.device) if kwargs["start_positions"] != None else None
+                        #fw_args["end_positions"] = kwargs["end_positions"].to(self.device) if kwargs["end_positions"] != None else None
 
                         attn_mask = (torch.sum(fw_args['attention_mask'], dim=-1)).cpu().numpy()
-                        if fw_args["start_positions"] != None:
-                            loss ,start, end, hidden_states, attentions, pipeline_prbs = self.model(**fw_args)
+                        op = self.model(**fw_args)
+                        loss = None
+                        if len(op) == 6:
+                            loss ,start, end, hidden_states, attentions, pipeline_prbs = op
+                            total_loss[0] += loss
+                            total_loss[1] += 1
                         else:
-                            start, end, hidden_states, attentions, pipeline_prbs = self.model(**fw_args)
+                            start, end, hidden_states, attentions, pipeline_prbs = op
 
-                        def convert_hid_to_np(x): return np.asarray([layer.cpu().numpy() for layer in x])
+                        def convert_hid_to_np(x): return np.asarray([torch.empty_like(layer).copy_(layer).detach().cpu().numpy() for layer in x])
                         def convert_att_to_np(x): 
-                            temp, res = np.asarray([layer.cpu().numpy() for layer in x]), []
+                            temp, res = np.asarray([torch.empty_like(layer).copy_(layer).detach().cpu().numpy() for layer in x]), []
                             for i in range(temp.shape[1]):
                                 res.append(np.squeeze(temp[:, i, :, :, :attn_mask[i]]))
                             return res
                         def convert_prbs_to_np(x):
                             q_prbs_temp, k_prbs_temp, v_prbs_temp, scrs_temp, att_out_temp = [], [], [], [], []
                             for i_layer in x:
-                                q_prbs_temp.append(i_layer[0].cpu().numpy())
-                                k_prbs_temp.append(i_layer[1].cpu().numpy())
-                                v_prbs_temp.append(i_layer[2].cpu().numpy())
-                                scrs_temp.append(i_layer[3].cpu().numpy())
-                                att_out_temp.append(i_layer[4].cpu().numpy())
+                                q_prbs_temp.append(i_layer[0].detach().cpu().numpy())
+                                k_prbs_temp.append(i_layer[1].detach().cpu().numpy())
+                                v_prbs_temp.append(i_layer[2].detach().cpu().numpy())
+                                scrs_temp.append(i_layer[3].detach().cpu().numpy())
+                                att_out_temp.append(i_layer[4].detach().cpu().numpy())
                             
                             num_inst = q_prbs_temp[0].shape[0]
                             q_prbs, k_prbs, v_prbs, scrs, att_out = [], [], [], [], []
@@ -1789,14 +1793,15 @@ class QuestionAnsweringPipeline(Pipeline):
                                 att_out.append(np.squeeze(np.stack(att_out_temp, axis=0)[:, i, :, :attn_mask[i], :]))
                             return(q_prbs, k_prbs, v_prbs, scrs, att_out)
 
-                        start, end = start.cpu().numpy(), end.cpu().numpy()
-                        hidden_states, attentions = \
+                        #start, end = start.cpu().numpy(), end.cpu().numpy()
+                        starts_, ends_ = torch.empty_like(start).copy_(start).detach().cpu().numpy(), torch.empty_like(end).copy_(end).detach().cpu().numpy()
+                        hdn_states, attns = \
                             convert_hid_to_np(hidden_states), convert_att_to_np(attentions)
                         pipeline_prbs = convert_prbs_to_np(pipeline_prbs)
 
             min_null_score = 1000000  # large and positive
             answers = []
-            for (feature, start_, end_) in zip(features, start, end):
+            for (feature, start_, end_) in zip(features, starts_, ends_):
                 # Ensure padded tokens & question tokens cannot belong to the set of candidate answers.
                 undesired_tokens = np.abs(np.array(feature.p_mask) - 1) & feature.attention_mask
 
@@ -1826,8 +1831,8 @@ class QuestionAnsweringPipeline(Pipeline):
                         "score": score.item(),
                         "start": np.where(char_to_word == feature.token_to_orig_map[s])[0][0].item(),
                         "end": np.where(char_to_word == feature.token_to_orig_map[e])[0][-1].item(),
-                        "hidden_states": hidden_states,
-                        "attentions": attentions,
+                        "hidden_states": hdn_states,
+                        "attentions": attns,
                         "pipeline_prbs": pipeline_prbs,
                         "answer": " ".join(
                             example.doc_tokens[feature.token_to_orig_map[s] : feature.token_to_orig_map[e] + 1]
@@ -1843,13 +1848,13 @@ class QuestionAnsweringPipeline(Pipeline):
             all_answers += answers
 
         if len(all_answers) == 1:
-            if fw_args["start_positions"] != None:
-                return all_answers[0], loss
+            if total_loss[0] != 0:
+                return all_answers[0], total_loss[0]/total_loss[1]
             else: 
                 return all_answers[0]
         
-        if fw_args["start_positions"] != None:
-            return all_answers, loss
+        if total_loss[0] != 0:
+            return all_answers, total_loss[0]/total_loss[1]
         else:
             return all_answers
 
