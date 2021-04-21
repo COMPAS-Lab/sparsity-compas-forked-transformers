@@ -526,7 +526,7 @@ class BertSelfAttention(nn.Module):
             # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
             attention_scores = attention_scores + attention_mask
         # Normalize the attention scores to probabilities.
-        #attention_probs = nn.Softmax(dim=-1)(attention_scores)
+        attention_probs = nn.Softmax(dim=-1)(attention_scores)
         # prepare profiled max values:
         import numpy as np
         profile_path = "params/maxscrs_profile.npy"
@@ -537,8 +537,10 @@ class BertSelfAttention(nn.Module):
                 res = np.load(profile_file)
 
         curr_layer_maxscrs_profile = torch.Tensor(np.reshape(res[layer_idx], (1, 12, 1, 1))) if res is not None else None
-        attention_probs = self.native_softmax(attention_scores, learned_threshold=att_threshold, max_scrs=curr_layer_maxscrs_profile)
+        #attention_probs = self.native_softmax(attention_scores, learned_threshold=att_threshold, max_scrs=curr_layer_maxscrs_profile)
         # MARK: customized mask
+        '''
+        #in place operations throws torch error
         for i in range(attention_probs.shape[0]):
             actual_len = torch.sum(attention_mask[i] == 0)
             actual_len = actual_len.item()
@@ -549,6 +551,7 @@ class BertSelfAttention(nn.Module):
             if new_mask.get_device() != attention_probs.get_device():
                 new_mask = new_mask.to(attention_probs.get_device())
             attention_probs[i] = attention_probs[i] * new_mask 
+        '''
 
         attention_probs = self.quantizer(attention_probs, quantize=self.quantize)
         # This is actually dropping out entire tokens to attend to, which might

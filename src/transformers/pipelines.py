@@ -1546,18 +1546,16 @@ class QuestionAnsweringArgumentHandler(ArgumentHandler):
         # Batched data
         if "X" in kwargs or "data" in kwargs:
             inputs = kwargs["X"] if "X" in kwargs else kwargs["data"]
-
             if isinstance(inputs, dict):
                 inputs = [inputs]
             else:
                 # Copy to avoid overriding arguments
                 inputs = [i for i in inputs]
-
+            from pprint import pprint
             for i, item in enumerate(inputs):
                 if isinstance(item, dict):
                     if any(k not in item for k in ["question", "context"]):
                         raise KeyError("You need to provide a dictionary with keys {question:..., context:...}")
-
                     inputs[i] = QuestionAnsweringPipeline.create_sample(**item)
 
                 elif not isinstance(item, SquadExample):
@@ -1575,8 +1573,17 @@ class QuestionAnsweringArgumentHandler(ArgumentHandler):
             if isinstance(kwargs["context"], str):
                 kwargs["context"] = [kwargs["context"]]
 
+            kwargs["answer_text"] = kwargs["answer_text"] if "answer_text" in kwargs else [None]*len(kwargs["context"])
+            kwargs["start_position_character"] = kwargs["start_position_character"] if "start_position_character" in kwargs else [None]*len(kwargs["context"])
+
+            if isinstance(kwargs["answer_text"], str):
+                kwargs["answer_text"] = [kwargs["answer_text"]]
+
+            if isinstance(kwargs["start_position_character"], int):
+                kwargs["start_position_character"] = [kwargs["start_position_character"]]
+
             inputs = [
-                QuestionAnsweringPipeline.create_sample(q, c) for q, c in zip(kwargs["question"], kwargs["context"])
+                QuestionAnsweringPipeline.create_sample(q, c, t, p) for q, c, t, p in zip(kwargs["question"], kwargs["context"], kwargs["answer_text"], kwargs["start_position_character"])
             ]
         else:
             raise ValueError("Unknown arguments {}".format(kwargs))
@@ -1630,7 +1637,8 @@ class QuestionAnsweringPipeline(Pipeline):
 
     @staticmethod
     def create_sample(
-        question: Union[str, List[str]], context: Union[str, List[str]]
+        question: Union[str, List[str]], context: Union[str, List[str]], 
+        answer_text: Union[str, List[str]]=None, start_position_character: Union[int, List[int]] = None
     ) -> Union[SquadExample, List[SquadExample]]:
         """
         QuestionAnsweringPipeline leverages the :class:`~transformers.SquadExample` internally.
@@ -1648,9 +1656,13 @@ class QuestionAnsweringPipeline(Pipeline):
             :class:`~transformers.SquadExample` grouping question and context.
         """
         if isinstance(question, list):
-            return [SquadExample(None, q, c, None, None, None) for q, c in zip(question, context)]
+            if answer_text is None: 
+                answer_text = [None]*len(question)
+            if start_position_character is None:
+                start_position_character = [None]*len(question)
+            return [SquadExample(None, q, c, t, p, None) for q, c, t, p in zip(question, context, answer_text, start_position_character)]
         else:
-            return SquadExample(None, question, context, None, None, None)
+            return SquadExample(None, question, context, answer_text, start_position_character, None)
 
     # MARK: qa pipeline call
     def __call__(self, *args, **kwargs):
@@ -1707,6 +1719,7 @@ class QuestionAnsweringPipeline(Pipeline):
         kwargs.setdefault("quantize_att_bits", 0.0)
         kwargs.setdefault("quantize_hstate_bits", 0.0)
         kwargs.setdefault("head_mask", None)
+        kwargs.setdefault("is_training", False)
 
         if kwargs["topk"] < 1:
             raise ValueError("topk parameter should be >= 1 (got {})".format(kwargs["topk"]))
@@ -1724,7 +1737,7 @@ class QuestionAnsweringPipeline(Pipeline):
                 doc_stride=kwargs["doc_stride"],
                 max_query_length=kwargs["max_question_len"],
                 padding_strategy=PaddingStrategy.MAX_LENGTH.value,
-                is_training=False,
+                is_training=kwargs["is_training"],
                 tqdm_enabled=False,
             )
             for example in examples
@@ -1943,6 +1956,375 @@ class QuestionAnsweringPipeline(Pipeline):
             "end": min(len(text), char_end_idx),
         }
 
+@add_end_docstrings(PIPELINE_INIT_ARGS)
+class BatchedQuestionAnsweringPipeline(Pipeline):
+    """
+    Question Answering pipeline using any :obj:`ModelForQuestionAnswering`. See the
+    `question answering examples <../task_summary.html#question-answering>`__ for more information.
+
+    This question answering pipeline can currently be loaded from :func:`~transformers.pipeline` using the following
+    task identifier: :obj:`"question-answering"`.
+
+    The models that this pipeline can use are models that have been fine-tuned on a question answering task.
+    See the up-to-date list of available models on
+    `huggingface.co/models <https://huggingface.co/models?filter=question-answering>`__.
+    """
+
+    default_input_names = "question,context"
+
+    def __init__(
+        self,
+        model: Union["PreTrainedModel", "TFPreTrainedModel"],
+        tokenizer: PreTrainedTokenizer,
+        modelcard: Optional[ModelCard] = None,
+        framework: Optional[str] = None,
+        device: int = -1,
+        task: str = "",
+        **kwargs
+    ):
+        super().__init__(
+            model=model,
+            tokenizer=tokenizer,
+            modelcard=modelcard,
+            framework=framework,
+            args_parser=QuestionAnsweringArgumentHandler(),
+            device=device,
+            task=task,
+            **kwargs,
+        )
+
+        self.check_model_type(
+            TF_MODEL_FOR_QUESTION_ANSWERING_MAPPING if self.framework == "tf" else MODEL_FOR_QUESTION_ANSWERING_MAPPING
+        )
+
+    @staticmethod
+    def create_sample(
+        question: Union[str, List[str]], context: Union[str, List[str]]
+    ) -> Union[SquadExample, List[SquadExample]]:
+        """
+        QuestionAnsweringPipeline leverages the :class:`~transformers.SquadExample` internally.
+        This helper method encapsulate all the logic for converting question(s) and context(s) to
+        :class:`~transformers.SquadExample`.
+
+        We currently support extractive question answering.
+
+        Arguments:
+            question (:obj:`str` or :obj:`List[str]`): The question(s) asked.
+            context (:obj:`str` or :obj:`List[str]`): The context(s) in which we will look for the answer.
+
+        Returns:
+            One or a list of :class:`~transformers.SquadExample`: The corresponding
+            :class:`~transformers.SquadExample` grouping question and context.
+        """
+        if isinstance(question, list):
+            return [SquadExample(None, q, c, None, None, None) for q, c in zip(question, context)]
+        else:
+            return SquadExample(None, question, context, None, None, None)
+
+    # MARK: qa pipeline call
+    def __call__(self, *args, **kwargs):
+        """
+        Answer the question(s) given as inputs by using the context(s).
+
+        Args:
+            args (:class:`~transformers.SquadExample` or a list of :class:`~transformers.SquadExample`):
+                One or several :class:`~transformers.SquadExample` containing the question and context.
+            X (:class:`~transformers.SquadExample` or a list of :class:`~transformers.SquadExample`, `optional`):
+                One or several :class:`~transformers.SquadExample` containing the question and context
+                (will be treated the same way as if passed as the first positional argument).
+            data (:class:`~transformers.SquadExample` or a list of :class:`~transformers.SquadExample`, `optional`):
+                One or several :class:`~transformers.SquadExample` containing the question and context
+                (will be treated the same way as if passed as the first positional argument).
+            question (:obj:`str` or :obj:`List[str]`):
+                One or several question(s) (must be used in conjunction with the :obj:`context` argument).
+            context (:obj:`str` or :obj:`List[str]`):
+                One or several context(s) associated with the qustion(s) (must be used in conjunction with the
+                :obj:`question` argument).
+            topk (:obj:`int`, `optional`, defaults to 1):
+                The number of answers to return (will be chosen by order of likelihood).
+            doc_stride (:obj:`int`, `optional`, defaults to 128):
+                If the context is too long to fit with the question for the model, it will be split in several chunks
+                with some overlap. This argument controls the size of that overlap.
+            max_answer_len (:obj:`int`, `optional`, defaults to 15):
+                The maximum length of predicted answers (e.g., only answers with a shorter length are considered).
+            max_seq_len (:obj:`int`, `optional`, defaults to 384):
+                The maximum length of the total sentence (context + question) after tokenization. The context will be
+                split in several chunks (using :obj:`doc_stride`) if needed.
+            max_question_len (:obj:`int`, `optional`, defaults to 64):
+                The maximum length of the question after tokenization. It will be truncated if needed.
+            handle_impossible_answer (:obj:`bool`, `optional`, defaults to :obj:`False`):
+                Whether or not we accept impossible as an answer.
+
+        Return:
+            A :obj:`dict` or a list of :obj:`dict`: Each result comes as a dictionary with the
+            following keys:
+
+            - **score** (:obj:`float`) -- The probability associated to the answer.
+            - **start** (:obj:`int`) -- The start index of the answer (in the tokenized version of the input).
+            - **end** (:obj:`int`) -- The end index of the answer (in the tokenized version of the input).
+            - **answer** (:obj:`str`) -- The answer to the question.
+        """
+        # Set defaults values
+        kwargs.setdefault("topk", 1)
+        kwargs.setdefault("doc_stride", 128)
+        kwargs.setdefault("max_answer_len", 15)
+        kwargs.setdefault("max_seq_len", 384)
+        kwargs.setdefault("max_question_len", 64)
+        kwargs.setdefault("handle_impossible_answer", False)
+        kwargs.setdefault("att_threshold", 0.0)
+        kwargs.setdefault("hs_threshold", 0.0)
+        kwargs.setdefault("quantize_att_bits", 0.0)
+        kwargs.setdefault("quantize_hstate_bits", 0.0)
+        kwargs.setdefault("head_mask", None)
+        kwargs.setdefault("is_training", False)
+
+        if kwargs["topk"] < 1:
+            raise ValueError("topk parameter should be >= 1 (got {})".format(kwargs["topk"]))
+
+        if kwargs["max_answer_len"] < 1:
+            raise ValueError("max_answer_len parameter should be >= 1 (got {})".format(kwargs["max_answer_len"]))
+
+        # Convert inputs to features
+        examples = self._args_parser(*args, **kwargs)
+        features_list = [
+            squad_convert_examples_to_features(
+                examples=[example],
+                tokenizer=self.tokenizer,
+                max_seq_length=kwargs["max_seq_len"],
+                doc_stride=kwargs["doc_stride"],
+                max_query_length=kwargs["max_question_len"],
+                padding_strategy=PaddingStrategy.MAX_LENGTH.value,
+                is_training=kwargs["is_training"],
+                tqdm_enabled=False,
+            )
+            for example in examples
+        ]
+        #TODO: pad sequences: input_ids and attention_mask
+        #TODO: alter p_mask (line 222 in squad.py) to ahndle answer selection spans
+        all_answers = []
+        total_loss = [0, 0]
+        for features, example in zip(features_list, examples):
+            model_input_names = self.tokenizer.model_input_names + ["input_ids", "start_position", "end_position"]
+            fw_args = {k: [feature.__dict__[k] for feature in features] for k in model_input_names}
+            fw_args["start_positions"] = fw_args.pop("start_position")
+            fw_args["end_positions"] = fw_args.pop("end_position")
+            # Manage tensor allocation on correct device
+            with self.device_placement():
+                if self.framework == "tf":
+                    fw_args = {k: tf.constant(v) for (k, v) in fw_args.items()}
+                    start, end = self.model(fw_args)[:2]
+                    start, end = start.numpy(), end.numpy()
+                else:
+                    #with torch.no_grad():
+                        # Retrieve the score for the context tokens only (removing question tokens)
+                        fw_args = {k: torch.tensor(v, device=self.device) for (k, v) in fw_args.items()}
+                        if kwargs["head_mask"] is not None:
+                            fw_args["head_mask"] = torch.tensor(kwargs["head_mask"], device=self.device)
+                        fw_args["att_threshold"] = kwargs["att_threshold"]
+                        fw_args["hs_threshold"] = kwargs["hs_threshold"]
+                        fw_args["quantize_att_bits"] = kwargs["quantize_att_bits"]
+                        fw_args["quantize_hstate_bits"] = kwargs["quantize_hstate_bits"]
+                        fw_args["output_attentions"] = True
+                        fw_args["output_hidden_states"] = True
+                        fw_args["output_pipeline_prbs"] = True
+                        #fw_args["start_positions"] = kwargs["start_positions"].to(self.device) if kwargs["start_positions"] != None else None
+                        #fw_args["end_positions"] = kwargs["end_positions"].to(self.device) if kwargs["end_positions"] != None else None
+
+                        attn_mask = (torch.sum(fw_args['attention_mask'], dim=-1)).cpu().numpy()
+                        op = self.model(**fw_args)
+                        loss = None
+                        if len(op) == 6:
+                            loss ,start, end, hidden_states, attentions, pipeline_prbs = op
+                            total_loss[0] += loss
+                            total_loss[1] += 1
+                        else:
+                            start, end, hidden_states, attentions, pipeline_prbs = op
+
+                        def convert_hid_to_np(x): return np.asarray([torch.empty_like(layer).copy_(layer).detach().cpu().numpy() for layer in x])
+                        def convert_att_to_np(x): 
+                            temp, res = np.asarray([torch.empty_like(layer).copy_(layer).detach().cpu().numpy() for layer in x]), []
+                            for i in range(temp.shape[1]):
+                                res.append(np.squeeze(temp[:, i, :, :, :attn_mask[i]]))
+                            return res
+                        def convert_prbs_to_np(x):
+                            q_prbs_temp, k_prbs_temp, v_prbs_temp, scrs_temp, att_out_temp = [], [], [], [], []
+                            for i_layer in x:
+                                q_prbs_temp.append(i_layer[0].detach().cpu().numpy())
+                                k_prbs_temp.append(i_layer[1].detach().cpu().numpy())
+                                v_prbs_temp.append(i_layer[2].detach().cpu().numpy())
+                                scrs_temp.append(i_layer[3].detach().cpu().numpy())
+                                att_out_temp.append(i_layer[4].detach().cpu().numpy())
+                            
+                            num_inst = q_prbs_temp[0].shape[0]
+                            q_prbs, k_prbs, v_prbs, scrs, att_out = [], [], [], [], []
+                            for i in range(num_inst):
+                                q_prbs.append(np.squeeze(np.stack(q_prbs_temp, axis=0)[:, i, :, :attn_mask[i], :]))
+                                k_prbs.append(np.squeeze(np.stack(k_prbs_temp, axis=0)[:, i, :, :attn_mask[i], :]))
+                                v_prbs.append(np.squeeze(np.stack(v_prbs_temp, axis=0)[:, i, :, :attn_mask[i], :]))
+                                scrs.append(np.squeeze(np.stack(scrs_temp, axis=0)[:, i, :, :attn_mask[i], :attn_mask[i]]))
+                                att_out.append(np.squeeze(np.stack(att_out_temp, axis=0)[:, i, :, :attn_mask[i], :]))
+                            return(q_prbs, k_prbs, v_prbs, scrs, att_out)
+
+                        #start, end = start.cpu().numpy(), end.cpu().numpy()
+                        starts_, ends_ = torch.empty_like(start).copy_(start).detach().cpu().numpy(), torch.empty_like(end).copy_(end).detach().cpu().numpy()
+                        hdn_states, attns = \
+                            convert_hid_to_np(hidden_states), convert_att_to_np(attentions)
+                        pipeline_prbs = convert_prbs_to_np(pipeline_prbs)
+
+            min_null_score = 1000000  # large and positive
+            answers = []
+            for (feature, start_, end_) in zip(features, starts_, ends_):
+                # Ensure padded tokens & question tokens cannot belong to the set of candidate answers.
+                undesired_tokens = np.abs(np.array(feature.p_mask) - 1) & feature.attention_mask
+
+                # Generate mask
+                undesired_tokens_mask = undesired_tokens == 0.0
+
+                # Make sure non-context indexes in the tensor cannot contribute to the softmax
+                start_ = np.where(undesired_tokens_mask, -10000.0, start_)
+                end_ = np.where(undesired_tokens_mask, -10000.0, end_)
+
+                # Normalize logits and spans to retrieve the answer
+                start_ = np.exp(start_ - np.log(np.sum(np.exp(start_), axis=-1, keepdims=True)))
+                end_ = np.exp(end_ - np.log(np.sum(np.exp(end_), axis=-1, keepdims=True)))
+
+                if kwargs["handle_impossible_answer"]:
+                    min_null_score = min(min_null_score, (start_[0] * end_[0]).item())
+
+                # Mask CLS
+                start_[0] = end_[0] = 0.0
+
+                starts, ends, scores = self.decode(start_, end_, kwargs["topk"], kwargs["max_answer_len"])
+                char_to_word = np.array(example.char_to_word_offset)
+
+                # Convert the answer (tokens) back to the original text
+                answers += [
+                    {
+                        "score": score.item(),
+                        "start": np.where(char_to_word == feature.token_to_orig_map[s])[0][0].item(),
+                        "end": np.where(char_to_word == feature.token_to_orig_map[e])[0][-1].item(),
+                        "hidden_states": hdn_states,
+                        "attentions": attns,
+                        "pipeline_prbs": pipeline_prbs,
+                        "answer": " ".join(
+                            example.doc_tokens[feature.token_to_orig_map[s] : feature.token_to_orig_map[e] + 1]
+                        ),
+                    }
+                    for s, e, score in zip(starts, ends, scores)
+                ]
+
+            if kwargs["handle_impossible_answer"]:
+                answers.append({"score": min_null_score, "start": 0, "end": 0, "answer": ""})
+
+            answers = sorted(answers, key=lambda x: x["score"], reverse=True)[: kwargs["topk"]]
+            all_answers += answers
+
+        if len(all_answers) == 1:
+            if total_loss[0] != 0:
+                return all_answers[0], total_loss[0]/total_loss[1]
+            else: 
+                return all_answers[0]
+        
+        if total_loss[0] != 0:
+            return all_answers, total_loss[0]/total_loss[1]
+        else:
+            return all_answers
+
+        if len(all_answers) == 1:
+            if total_loss[0] != 0:
+                return all_answers[0], total_loss[0]/total_loss[1]
+            else: 
+                return all_answers[0]
+        
+        if total_loss[0] != 0:
+            return all_answers, total_loss[0]/total_loss[1]
+        else:
+            return all_answers
+
+    def decode(self, start: np.ndarray, end: np.ndarray, topk: int, max_answer_len: int) -> Tuple:
+        """
+        Take the output of any :obj:`ModelForQuestionAnswering` and will generate probalities for each span to be
+        the actual answer.
+
+        In addition, it filters out some unwanted/impossible cases like answer len being greater than
+        max_answer_len or answer end position being before the starting position.
+        The method supports output the k-best answer through the topk argument.
+
+        Args:
+            start (:obj:`np.ndarray`): Individual start probabilities for each token.
+            end (:obj:`np.ndarray`): Individual end probabilities for each token.
+            topk (:obj:`int`): Indicates how many possible answer span(s) to extract from the model output.
+            max_answer_len (:obj:`int`): Maximum size of the answer to extract from the model's output.
+        """
+        # Ensure we have batch axis
+        if start.ndim == 1:
+            start = start[None]
+
+        if end.ndim == 1:
+            end = end[None]
+
+        # Compute the score of each tuple(start, end) to be the real answer
+        outer = np.matmul(np.expand_dims(start, -1), np.expand_dims(end, 1))
+
+        # Remove candidate with end < start and end - start > max_answer_len
+        candidates = np.tril(np.triu(outer), max_answer_len - 1)
+
+        #  Inspired by Chen & al. (https://github.com/facebookresearch/DrQA)
+        scores_flat = candidates.flatten()
+        if topk == 1:
+            idx_sort = [np.argmax(scores_flat)]
+        elif len(scores_flat) < topk:
+            idx_sort = np.argsort(-scores_flat)
+        else:
+            idx = np.argpartition(-scores_flat, topk)[0:topk]
+            idx_sort = idx[np.argsort(-scores_flat[idx])]
+
+        start, end = np.unravel_index(idx_sort, candidates.shape)[1:]
+        return start, end, candidates[0, start, end]
+
+    def span_to_answer(self, text: str, start: int, end: int) -> Dict[str, Union[str, int]]:
+        """
+        When decoding from token probalities, this method maps token indexes to actual word in
+        the initial context.
+
+        Args:
+            text (:obj:`str`): The actual context to extract the answer from.
+            start (:obj:`int`): The answer starting token index.
+            end (:obj:`int`): The answer end token index.
+
+        Returns:
+            Dictionary like :obj:`{'answer': str, 'start': int, 'end': int}`
+        """
+        words = []
+        token_idx = char_start_idx = char_end_idx = chars_idx = 0
+
+        for i, word in enumerate(text.split(" ")):
+            token = self.tokenizer.tokenize(word)
+
+            # Append words if they are in the span
+            if start <= token_idx <= end:
+                if token_idx == start:
+                    char_start_idx = chars_idx
+
+                if token_idx == end:
+                    char_end_idx = chars_idx + len(word)
+
+                words += [word]
+
+            # Stop if we went over the end of the answer
+            if token_idx > end:
+                break
+
+            # Append the subtokenization length to the running index
+            token_idx += len(token)
+            chars_idx += len(word) + 1
+
+        # Join text with spaces
+        return {
+            "answer": " ".join(words),
+            "start": max(0, char_start_idx),
+            "end": min(len(text), char_end_idx),
+        }
 
 @add_end_docstrings(PIPELINE_INIT_ARGS)
 class SummarizationPipeline(Pipeline):
@@ -2631,6 +3013,14 @@ SUPPORTED_TASKS = {
     },
     "question-answering": {
         "impl": QuestionAnsweringPipeline,
+        "tf": TFAutoModelForQuestionAnswering if is_tf_available() else None,
+        "pt": AutoModelForQuestionAnswering if is_torch_available() else None,
+        "default": {
+            "model": {"pt": "distilbert-base-cased-distilled-squad", "tf": "distilbert-base-cased-distilled-squad"},
+        },
+    },
+    "batched-question-answering": {
+        "impl": BatchedQuestionAnsweringPipeline,
         "tf": TFAutoModelForQuestionAnswering if is_tf_available() else None,
         "pt": AutoModelForQuestionAnswering if is_torch_available() else None,
         "default": {
