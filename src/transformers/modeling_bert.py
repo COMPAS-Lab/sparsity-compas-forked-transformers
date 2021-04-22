@@ -605,9 +605,9 @@ class BertQuantizer(nn.Module):
         self.vals = None
         self.num_funcs = None
     
-    def init_weights(self, bounds:torch.Tensor=None, vals:torch.Tensor=None):
+    def init_weights(self, bounds:torch.Tensor=None, vals:torch.Tensor=None, bits:int=3):
 
-        if bounds is None: bounds = torch.rand(8).uniform_(0, 1.0)
+        if bounds is None: bounds = torch.rand(2**bits).uniform_(1e-3, 1.0)
         #Need to add to nn.Parameter based on type of optim
         bounds = torch.sort(bounds)[0]
 
