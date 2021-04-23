@@ -621,17 +621,34 @@ class BertQuantizer(nn.Module):
         assert self.lower_bounds.shape == self.upper_bounds.shape == self.vals.shape
         self.num_funcs = len(self.lower_bounds)
     
+    def init_bounds(self, bounds:torch.Tensor=None, bits:int=3):
+
+        if bounds is None: bounds = torch.rand(2**bits).uniform_(1e-3, 1.0)
+
+        bounds = torch.sort(bounds)[0]
+        self.lower_bounds = nn.Parameter(bounds[:-1])
+        self.upper_bounds = nn.Parameter(bounds[1:])
+        self.num_funcs = len(self.lower_bounds)
+
     def forward(self, input_tensor:torch.Tensor, quantize=True):
         #Basic quantization
         if quantize == False:
             return input_tensor
-        
-        device = input_tensor.device
-        preds, zeros = torch.zeros(input_tensor.shape).to(device), torch.zeros(input_tensor.shape).to(device)
-        for i in range(self.num_funcs):
-            val = torch.ones(input_tensor.shape).to(device)*self.vals[i]
-            preds += torch.where((self.lower_bounds[i].to(device)<=input_tensor)&(input_tensor<=self.upper_bounds[i].to(device)), val, zeros)
-        
+        #val based optim
+        elif quantize == True:
+            device = input_tensor.device
+            preds, zeros = torch.zeros(input_tensor.shape).to(device), torch.zeros(input_tensor.shape).to(device)
+            for i in range(self.num_funcs):
+                val = torch.ones(input_tensor.shape).to(device)*self.vals[i]
+                preds += torch.where((self.lower_bounds[i].to(device)<=input_tensor)&(input_tensor<=self.upper_bounds[i].to(device)), val, zeros)
+        #bounds based optim
+        elif quantize == "bounds":
+            device = input_tensor.device
+            preds, zeros = torch.zeros(input_tensor.shape).to(device), torch.zeros(input_tensor.shape).to(device)
+            for i in range(self.num_funcs):
+                val = torch.ones(input_tensor.shape).to(device)*(self.lower_bounds[i]+self.upper_bounds[i])/2.0
+                preds += torch.where((self.lower_bounds[i].to(device)<=input_tensor)&(input_tensor<=self.upper_bounds[i].to(device)), val, zeros)
+
         return preds
 
 
