@@ -604,6 +604,7 @@ class BertQuantizer(nn.Module):
         self.upper_bounds = None #bounds[1:]
         self.vals = None
         self.num_funcs = None
+        self.frac = None
     
     def init_weights(self, bounds:torch.Tensor=None, vals:torch.Tensor=None, bits:int=3):
 
@@ -623,12 +624,13 @@ class BertQuantizer(nn.Module):
     
     def init_bounds(self, bounds:torch.Tensor=None, bits:int=3):
 
-        if bounds is None: bounds = torch.rand(2**bits).uniform_(1e-3, 1.0)
+        if bounds is None: 
+            bounds = torch.rand(2**bits-2).uniform_(1e-3, 1.0).tolist()
+            bounds = torch.FloatTensor([1e-3,] + bounds + [1.0,])
 
-        bounds = torch.sort(bounds)[0]
-        self.lower_bounds = nn.Parameter(bounds[:-1])
-        self.upper_bounds = nn.Parameter(bounds[1:])
-        self.num_funcs = len(self.lower_bounds)
+        self.bounds = nn.Parameter(torch.sort(bounds)[0])
+        self.frac = torch.ones(1)/2.0
+        self.num_funcs = len(self.bounds-1)
 
     def forward(self, input_tensor:torch.Tensor, quantize=True):
         #Basic quantization
@@ -646,8 +648,8 @@ class BertQuantizer(nn.Module):
             device = input_tensor.device
             preds, zeros = torch.zeros(input_tensor.shape).to(device), torch.zeros(input_tensor.shape).to(device)
             for i in range(self.num_funcs):
-                val = torch.ones(input_tensor.shape).to(device)*(self.lower_bounds[i]+self.upper_bounds[i])/2.0
-                preds += torch.where((self.lower_bounds[i].to(device)<=input_tensor)&(input_tensor<=self.upper_bounds[i].to(device)), val, zeros)
+                val = torch.ones(input_tensor.shape).to(device)*(self.frac*self.bounds.clamp(1e-3, 1.0)[i]+(1-self.frac)*self.bounds.clamp(1e-3, 1.0)[i+1])
+                preds += torch.where((self.bounds.clamp(1e-3, 1.0)[i].to(device)<=input_tensor)&(input_tensor<=self.bounds.clamp(1e-3, 1.0)[i+1].to(device)), val, zeros)
 
         return preds
 
