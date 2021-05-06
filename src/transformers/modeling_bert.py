@@ -628,9 +628,14 @@ class BertQuantizer(nn.Module):
             bounds = torch.rand(2**bits-2).uniform_(1e-3, 1.0).tolist()
             bounds = torch.FloatTensor([1e-3,] + bounds + [1.0,])
 
-        self.bounds = nn.Parameter(torch.sort(bounds)[0])
-        self.frac = torch.ones(1)/2.0
-        self.num_funcs = len(self.bounds-1)
+        #self.bounds = nn.Parameter(torch.sort(bounds)[0])
+        self.bounds = torch.sort(bounds)[0]
+        self.lower_bounds = nn.Parameter(self.bounds[:-1])
+        self.upper_bounds = nn.Parameter(self.bounds[1:])
+        self.num_funcs = len(self.lower_bounds)
+        self.frac = (torch.ones(self.num_funcs)/2.0)
+        #self.frac = nn.Parameter(torch.ones(self.num_funcs)/2.0)
+        #self.frac2 = nn.Parameter(torch.ones(self.num_funcs)/2.0)
 
     def forward(self, input_tensor:torch.Tensor, quantize=True):
         #Basic quantization
@@ -639,17 +644,24 @@ class BertQuantizer(nn.Module):
         #val based optim
         elif quantize == True:
             device = input_tensor.device
-            preds, zeros = torch.zeros(input_tensor.shape).to(device), torch.zeros(input_tensor.shape).to(device)
+            if self.lower_bounds.device != device: self.lower_bounds = self.lower_bounds.to(device)
+            if self.upper_bounds.device != device: self.upper_bounds = self.upper_bounds.to(device)
+
+            preds, zeros = torch.zeros(input_tensor.shape, device=device), torch.zeros(input_tensor.shape, device=device)
             for i in range(self.num_funcs):
-                val = torch.ones(input_tensor.shape).to(device)*self.vals[i]
-                preds += torch.where((self.lower_bounds[i].to(device)<=input_tensor)&(input_tensor<=self.upper_bounds[i].to(device)), val, zeros)
+                val = torch.ones(input_tensor.shape, device=device)*self.vals[i]
+                preds += torch.where((self.lower_bounds[i]<=input_tensor)&(input_tensor<=self.upper_bounds[i]), val, zeros)
         #bounds based optim
         elif quantize == "bounds":
             device = input_tensor.device
-            preds, zeros = torch.zeros(input_tensor.shape).to(device), torch.zeros(input_tensor.shape).to(device)
-            for i in range(self.num_funcs):
-                val = torch.ones(input_tensor.shape).to(device)*(self.frac*self.bounds.clamp(1e-3, 1.0)[i]+(1-self.frac)*self.bounds.clamp(1e-3, 1.0)[i+1])
-                preds += torch.where((self.bounds.clamp(1e-3, 1.0)[i].to(device)<=input_tensor)&(input_tensor<=self.bounds.clamp(1e-3, 1.0)[i+1].to(device)), val, zeros)
+            #self.lower_bounds.clamp_(max=1.0)
+            #self.upper_bounds.clamp_(max=1.0)
+            preds, zeros = torch.zeros(input_tensor.shape, device=device), torch.zeros(input_tensor.shape, device=device)
+            for i in range(self.num_funcs-1):
+                min_val = 1e-3 if i==0 else self.upper_bounds[i-1].data
+                #val = torch.ones(input_tensor.shape, device=device)*(self.frac[i]*self.lower_bounds[i].clamp_(min_val)+self.frac2[i]*self.upper_bounds[i].clamp_(min=self.lower_bounds[i].data))
+                val = torch.ones(input_tensor.shape, device=device)*(self.frac[i]*self.lower_bounds[i]+(1-self.frac[i])*self.upper_bounds[i])
+                preds += torch.where((self.lower_bounds[i]<=input_tensor)&(input_tensor<=self.upper_bounds[i]), val, zeros)
 
         return preds
 
