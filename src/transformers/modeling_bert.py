@@ -586,11 +586,14 @@ class BertSelfOutput(nn.Module):
         self.LayerNorm = BertLayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, hidden_states, input_tensor):
+    def forward(self, hidden_states, input_tensor, probing):
         hidden_states = self.dense(hidden_states)
+        # first dense output
+        probing += (hidden_states,)
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
-        return hidden_states
+        probing += (hidden_states,)
+        return hidden_states, probing
 
 
 class BertAttention(nn.Module):
@@ -641,9 +644,10 @@ class BertAttention(nn.Module):
         )
         # self_outputs[0]: context; self_outputs[1:]: attentions
         # pipeline_probes: (q, k, v, attention_scores)
-        attention_output = self.output(self_outputs[0], hidden_states)
+        attention_output, probing = self.output(self_outputs[0], hidden_states, pipeline_probes)
+        # pipeline_probes: (q, k, v, attention_scores, att_output_dense_out, att_output_ln_out)
         outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
-        return outputs, pipeline_probes
+        return outputs, probing
 
 
 class BertIntermediate(nn.Module):

@@ -1762,23 +1762,28 @@ class QuestionAnsweringPipeline(Pipeline):
                                 res.append(np.squeeze(temp[:, i, :, :, :attn_mask[i]]))
                             return res
                         def convert_prbs_to_np(x):
-                            q_prbs_temp, k_prbs_temp, v_prbs_temp, scrs_temp, att_out_temp = [], [], [], [], []
+                            q_prbs_temp, k_prbs_temp, v_prbs_temp, scrs_temp, att_out_temp, att_out_dense_temp, first_ln_temp = \
+                                [], [], [], [], [], [], []
                             for i_layer in x:
                                 q_prbs_temp.append(i_layer[0].cpu().numpy())
                                 k_prbs_temp.append(i_layer[1].cpu().numpy())
                                 v_prbs_temp.append(i_layer[2].cpu().numpy())
                                 scrs_temp.append(i_layer[3].cpu().numpy())
                                 att_out_temp.append(i_layer[4].cpu().numpy())
+                                att_out_dense_temp.append(i_layer[5].cpu().numpy())
+                                first_ln_temp.append(i_layer[6].cpu().numpy())
                             
                             num_inst = q_prbs_temp[0].shape[0]
-                            q_prbs, k_prbs, v_prbs, scrs, att_out = [], [], [], [], []
+                            q_prbs, k_prbs, v_prbs, scrs, att_out, att_out_dense, first_ln = [], [], [], [], [], [], []
                             for i in range(num_inst):
                                 q_prbs.append(np.squeeze(np.stack(q_prbs_temp, axis=0)[:, i, :, :attn_mask[i], :]))
                                 k_prbs.append(np.squeeze(np.stack(k_prbs_temp, axis=0)[:, i, :, :attn_mask[i], :]))
                                 v_prbs.append(np.squeeze(np.stack(v_prbs_temp, axis=0)[:, i, :, :attn_mask[i], :]))
                                 scrs.append(np.squeeze(np.stack(scrs_temp, axis=0)[:, i, :, :attn_mask[i], :attn_mask[i]]))
                                 att_out.append(np.squeeze(np.stack(att_out_temp, axis=0)[:, i, :, :attn_mask[i], :]))
-                            return(q_prbs, k_prbs, v_prbs, scrs, att_out)
+                                att_out_dense.append(np.squeeze(np.stack(att_out_dense_temp, axis=0)[:, i, :attn_mask[i], :]))
+                                first_ln.append(np.squeeze(np.stack(first_ln_temp, axis=0)[:, i, :attn_mask[i], :]))
+                            return(q_prbs, k_prbs, v_prbs, scrs, att_out, att_out_dense, first_ln)
 
                         start, end = start.cpu().numpy(), end.cpu().numpy()
                         hidden_states, attentions = \
