@@ -27,7 +27,7 @@ import torch.utils.checkpoint
 from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
 
-from .activations import gelu, gelu_new, swish
+from .activations import gelu, gelu_new, swish, gelu_plan
 from .configuration_bert import BertConfig
 from .file_utils import (
     ModelOutput,
@@ -166,7 +166,7 @@ def mish(x):
     return x * torch.tanh(nn.functional.softplus(x))
 
 
-ACT2FN = {"gelu": gelu, "relu": torch.nn.functional.relu, "swish": swish, "gelu_new": gelu_new, "mish": mish}
+ACT2FN = {"gelu": gelu, "relu": torch.nn.functional.relu, "swish": swish, "gelu_new": gelu_new, "mish": mish, "gelu_plan": gelu_plan}
 
 
 BertLayerNorm = torch.nn.LayerNorm
@@ -552,7 +552,7 @@ class BertSelfAttention(nn.Module):
             x_exp_sum[x_exp_sum == 0.0] = 1e5
 
             if scrs_max is not None and scrs_threshold is None:
-                return x_exp/x_exp_sum, x_exp
+                return x_exp/x_exp_sum, scores
             else:
                 return x_exp/x_exp_sum, scores
 
@@ -745,6 +745,7 @@ class BertIntermediate(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.dense = nn.Linear(config.hidden_size, config.intermediate_size)
+        print(f"hidden_act: {config.hidden_act}")
         if isinstance(config.hidden_act, str):
             self.intermediate_act_fn = ACT2FN[config.hidden_act]
         else:
