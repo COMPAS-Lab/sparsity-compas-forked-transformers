@@ -39,6 +39,7 @@ from ...utils import (
     logging,
     replace_return_docstrings,
 )
+from ...bfp import bfp_ops
 from .configuration_opt import OPTConfig
 
 
@@ -174,7 +175,11 @@ class OPTAttention(nn.Module):
         value_states = value_states.view(*proj_shape)
 
         src_len = key_states.size(1)
-        attn_weights = torch.bmm(query_states, key_states.transpose(1, 2))
+
+        BFP_query_states = bfp_ops.convert_bfp(query_states, 4, query_states.shape[-1])
+        BFP_key_states = bfp_ops.convert_bfp(key_states, 4, key_states.shape[-1])
+
+        attn_weights = torch.bmm(BFP_query_states, BFP_key_states.transpose(1, 2))
 
         if attn_weights.size() != (bsz * self.num_heads, tgt_len, src_len):
             raise ValueError(
@@ -192,6 +197,7 @@ class OPTAttention(nn.Module):
                 attn_weights, torch.tensor(torch.finfo(attn_weights.dtype).min, device=attn_weights.device)
             )
             attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
+
 
         # upcast to fp32 if the weights are in fp16. Please see https://github.com/huggingface/transformers/pull/17437
         if attn_weights.dtype == torch.float16:
