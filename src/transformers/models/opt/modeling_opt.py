@@ -187,7 +187,9 @@ class OPTAttention(nn.Module):
                 f" {attn_weights.size()}"
             )
 
+        attn_mask_size = (0, 0)
         if attention_mask is not None:
+            attn_mask_size = attention_mask.size()
             if attention_mask.size() != (bsz, 1, tgt_len, src_len):
                 raise ValueError(
                     f"Attention mask should be of size {(bsz, 1, tgt_len, src_len)}, but is {attention_mask.size()}"
@@ -198,6 +200,7 @@ class OPTAttention(nn.Module):
             )
             attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
 
+        print("size of attn and seq len: ", attn_weights.size(), attn_mask_size)
 
         # upcast to fp32 if the weights are in fp16. Please see https://github.com/huggingface/transformers/pull/17437
         if attn_weights.dtype == torch.float16:
