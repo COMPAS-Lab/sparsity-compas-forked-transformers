@@ -291,7 +291,6 @@ class bfp(Function):
 
 # call this function in modeling_bert.py on activation tensors
 def convert_bfp(t, mant_bits, width_tile_size, entire = 0, rounding_mode = 'determ', device = 'cpu'):
-    print("converting to bfp...")
     return bfp().apply(t, mant_bits, width_tile_size, entire, rounding_mode, device)
 
 # replace nn.Linear layers with BFPLinear layers
