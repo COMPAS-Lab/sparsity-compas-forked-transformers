@@ -212,7 +212,8 @@ class OPTAttention(nn.Module):
         BFP_query_states = bfp_ops.convert_bfp(query_states, 4, query_states.shape[-1])
         BFP_key_states = bfp_ops.convert_bfp(key_states, 4, key_states.shape[-1])
 
-        attn_weights = torch.bmm(BFP_query_states, BFP_key_states.transpose(1, 2))
+        attn_weights = torch.bmm(query_states, key_states.transpose(1, 2))
+        # attn_weights = torch.bmm(BFP_query_states, BFP_key_states.transpose(1, 2))
 
         if attn_weights.size() != (bsz * self.num_heads, tgt_len, src_len):
             raise ValueError(
@@ -233,13 +234,14 @@ class OPTAttention(nn.Module):
             )
             attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
 
-        print("size of attn and seq len: ", attn_weights.size(), attn_mask_size)
-
         # upcast to fp32 if the weights are in fp16. Please see https://github.com/huggingface/transformers/pull/17437
         if attn_weights.dtype == torch.float16:
             attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(torch.float16)
         else:
             attn_weights = nn.functional.softmax(attn_weights, dim=-1)
+
+        # apply static pruning
+        # attn_weights = torch.where(attn_weights>1e-2, attn_weights, 0.)
 
         if layer_head_mask is not None:
             if layer_head_mask.size() != (self.num_heads,):
@@ -247,6 +249,8 @@ class OPTAttention(nn.Module):
                     f"Head mask for a single layer should be of size {(self.num_heads,)}, but is"
                     f" {layer_head_mask.size()}"
                 )
+            print("head mask size: ", layer_head_mask.size())
+            print("head mask: ", layer_head_mask[0])
             attn_weights = layer_head_mask.view(1, -1, 1, 1) * attn_weights.view(bsz, self.num_heads, tgt_len, src_len)
             attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
 
@@ -261,6 +265,8 @@ class OPTAttention(nn.Module):
             attn_weights_reshaped = None
 
         attn_probs = nn.functional.dropout(attn_weights, p=self.dropout, training=self.training)
+
+        # attn_probs = bfp_ops.convert_bfp(attn_probs, 4, attn_probs.shape[-1])
 
         attn_output = torch.bmm(attn_probs, value_states)
 
