@@ -208,7 +208,7 @@ class OPTAttention(nn.Module):
             attn_weights = nn.functional.softmax(attn_weights, dim=-1)
 
         # apply static pruning
-        # attn_weights = torch.where(attn_weights>1e-2, attn_weights, 0.)
+        # attn_weights = torch.where(attn_weights>1e-3, attn_weights, 0.)
 
         if layer_head_mask is not None:
             if layer_head_mask.size() != (self.num_heads,):
