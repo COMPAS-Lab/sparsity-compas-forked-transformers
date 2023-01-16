@@ -251,7 +251,6 @@ class OPTAttention(nn.Module):
         attn_output = attn_output.reshape(bsz, tgt_len, self.embed_dim)
 
         attn_output = self.out_proj(attn_output)
-
         return attn_output, attn_weights_reshaped, past_key_value
 
 
