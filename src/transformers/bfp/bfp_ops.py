@@ -224,7 +224,7 @@ def float_to_bfp_tiled(t, mant_bits, height_tile_size, width_tile_size, prune = 
 
 # function that handles actual bfp conversion: uses division as in the EPFL code
 # I rewrote the blocking since I found the original code hard to understand
-def my_float_to_bfp(t,  mant_bits, vec_size, entire = 0, epsilon = 1e-30, rounding_mode = 'determ', device = 'cpu',  prune = False):
+def my_float_to_bfp(t,  mant_bits, vec_size, entire = 0, epsilon = 6e-5, rounding_mode = 'determ', device = 'cpu',  prune = False):
     """
     Convert float tensor t to bfp
     """
@@ -262,11 +262,10 @@ def my_float_to_bfp(t,  mant_bits, vec_size, entire = 0, epsilon = 1e-30, roundi
         interval = torch.pow(2.0, exp-mant_bits)
         #The maximum representable value with exp
         max_v = torch.pow(2.0, exp) - interval
-    
         # To ensure that we preserve the interval
         reshaped_t = reshaped_t/interval
         rounded = round_tensor(reshaped_t, rounding_mode, device)
-        rounded *=  interval
+        rounded *= interval
         
         result = torch.min(torch.max(rounded, -max_v), max_v).reshape(padded_t_shape)
         result = result[..., :-pad]
