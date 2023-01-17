@@ -37,7 +37,7 @@ class CircleCIJob:
     docker_image: List[Dict[str, str]] = None
     install_steps: List[str] = None
     marker: Optional[str] = None
-    parallelism: int = 1
+    parallelism: Optional[int] = 1
     pytest_num_workers: int = 8
     pytest_options: Dict[str, Any] = None
     resource_class: Optional[str] = "xlarge"
@@ -57,7 +57,6 @@ class CircleCIJob:
             self.install_steps = []
         if self.pytest_options is None:
             self.pytest_options = {}
-
         if isinstance(self.tests_to_run, str):
             self.tests_to_run = [self.tests_to_run]
 
@@ -69,7 +68,8 @@ class CircleCIJob:
         }
         if self.resource_class is not None:
             job["resource_class"] = self.resource_class
-        job["parallelism"] = self.parallelism
+        if self.parallelism is not None:
+            job["parallelism"] = self.parallelism
         steps = [
             "checkout",
             {"attach_workspace": {"at": "~/transformers/test_preparation"}},
@@ -100,28 +100,25 @@ class CircleCIJob:
             f"--make-reports={self.name}" if "examples" in self.name else f"--make-reports=tests_{self.name}"
         )
 
+        tests = self.tests_to_run
         # This needs to be improved
-        if self.tests_to_run is None:
+        if tests is None:
             folder = os.environ["test_preparation_dir"]
             test_file = os.path.join(folder, "filtered_test_list.txt")
             if os.path.exists(test_file):
                 with open(test_file) as f:
-                    self.tests_to_run = f.read().split(" ")
-
-        # no specified ==> use default one, which is computed, but how do we get the actual value
-        tests = self.tests_to_run
-        # if tests is None:
-        #     # tests = ["<< pipeline.parameters.tests_to_run >>"]
+                    tests = f.read().split(" ")
 
         expanded_tests = []
         for test in tests:
             if not test.endswith(".py"):
                 expanded_tests.extend(glob.glob(f'{test}/**/test_*.py', recursive=True))
         tests = expanded_tests
-        if len(tests) < self.parallelism:  # noqa
+
+        if self.parallelism is not None and len(tests) < self.parallelism:
             self.parallelism = 1
             job["parallelism"] = self.parallelism
-        tests = " ".join(tests)  # noqa
+        tests = " ".join(tests)
 
         command = f'echo {tests} | tr " " "\\n" >> tests.txt'
         steps.append({"run": {"name": "Get tests", "command": command}})
@@ -200,6 +197,7 @@ tf_job = CircleCIJob(
         "pip install .[sklearn,tf-cpu,testing,sentencepiece,tf-speech,vision]",
         "pip install tensorflow_probability",
     ],
+    parallelism=8,
     pytest_options={"rA": None},
 )
 
@@ -211,6 +209,7 @@ flax_job = CircleCIJob(
         "pip install --upgrade pip",
         "pip install .[flax,testing,sentencepiece,flax-speech,vision]",
     ],
+    parallelism=8,
     pytest_options={"rA": None},
 )
 
@@ -258,6 +257,7 @@ custom_tokenizers_job = CircleCIJob(
         "pip install .[ja,testing,sentencepiece,jieba,spacy,ftfy,rjieba]",
         "python -m unidic download",
     ],
+    parallelism=None,
     resource_class=None,
     tests_to_run=[
         "./tests/models/bert_japanese/test_tokenization_bert_japanese.py",
@@ -356,17 +356,18 @@ repo_utils_job = CircleCIJob(
         "pip install --upgrade pip",
         "pip install .[quality,testing]",
     ],
+    parallelism=None,
     pytest_num_workers=1,
     resource_class=None,
     tests_to_run="tests/repo_utils",
 )
 
 REGULAR_TESTS = [
-    # torch_and_tf_job,
+    torch_and_tf_job,
     # torch_and_flax_job,
     torch_job,
-    # tf_job,
-    # flax_job,
+    tf_job,
+    flax_job,
     # custom_tokenizers_job,
     # hub_job,
     # onnx_job,
