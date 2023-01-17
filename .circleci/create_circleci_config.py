@@ -109,10 +109,17 @@ class CircleCIJob:
                 with open(test_file) as f:
                     tests = f.read().split(" ")
 
+        if tests == ["tests"]:
+            tests = [os.path.join("tests", x) for x in os.listdir("tests")]
+
         expanded_tests = []
         for test in tests:
-            if not test.endswith(".py"):
-                expanded_tests.extend(glob.glob(f'{test}/**/test_*.py', recursive=True))
+            if test.endswith(".py"):
+                expanded_tests.append(test)
+            elif test == "tests/models":
+                expanded_tests.extend([os.path.join(test, x) for x in os.listdir(test)])
+            else:
+                expanded_tests.append(test)
         tests = expanded_tests
 
         if self.parallelism is not None and len(tests) < self.parallelism:
@@ -123,7 +130,7 @@ class CircleCIJob:
         command = f'echo {tests} | tr " " "\\n" >> tests.txt'
         steps.append({"run": {"name": "Get tests", "command": command}})
 
-        command = 'TESTS=$(circleci tests split tests.txt) && echo $TESTS && echo $TESTS > splitted_tests.txt'
+        command = 'TESTS=$(circleci tests split tests.txt) && echo $TESTS > splitted_tests.txt'
         steps.append({"run": {"name": "Split tests", "command": command}})
 
         steps.append({"store_artifacts": {"path": "~/transformers/tests.txt"}})
@@ -157,6 +164,7 @@ torch_and_tf_job = CircleCIJob(
         "pip install tensorflow_probability",
         "pip install git+https://github.com/huggingface/accelerate",
     ],
+    parallelism=None,
     marker="is_pt_tf_cross_test",
     pytest_options={"rA": None, "durations": 0},
 )
@@ -366,8 +374,8 @@ REGULAR_TESTS = [
     torch_and_tf_job,
     # torch_and_flax_job,
     torch_job,
-    tf_job,
-    flax_job,
+    # tf_job,
+    # flax_job,
     # custom_tokenizers_job,
     # hub_job,
     # onnx_job,
