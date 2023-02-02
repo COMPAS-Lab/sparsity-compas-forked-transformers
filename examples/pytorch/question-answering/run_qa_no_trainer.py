@@ -46,6 +46,7 @@ from transformers import (
     AutoConfig,
     AutoModelForQuestionAnswering,
     AutoTokenizer,
+    GPT2TokenizerFast,
     DataCollatorWithPadding,
     EvalPrediction,
     SchedulerType,
@@ -359,6 +360,7 @@ def main():
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         datefmt="%m/%d/%Y %H:%M:%S",
         level=logging.INFO,
+        filename=args.output_dir + '/train.log',
     )
     logger.info(accelerator.state, main_process_only=False)
     if accelerator.is_local_main_process:
@@ -434,6 +436,7 @@ def main():
         config = CONFIG_MAPPING[args.model_type]()
         logger.warning("You are instantiating a new config instance from scratch.")
 
+    sep_token_str="<|endoftext|>"
     if args.tokenizer_name:
         tokenizer = AutoTokenizer.from_pretrained(
             args.tokenizer_name, use_fast=True, trust_remote_code=args.trust_remote_code
@@ -462,10 +465,21 @@ def main():
     # Preprocessing the datasets.
     # Preprocessing is slightly different for training and evaluation.
 
+    # append sep token to question and contexts
+    raw_datasets = raw_datasets = raw_datasets.map( \
+        lambda a: {
+            "question_wsep": a["question"] + sep_token_str, 
+            "context_wsep": a["context"] + sep_token_str})
+
     column_names = raw_datasets["train"].column_names
 
-    question_column_name = "question" if "question" in column_names else column_names[0]
-    context_column_name = "context" if "context" in column_names else column_names[1]
+    if tokenizer.sep_token is not None:
+        question_column_name = "question_wsep" if "question_wsep" in column_names else column_names[0]
+        context_column_name = "context_wsep" if "context_wsep" in column_names else column_names[1]
+    else:
+        question_column_name = "question" if "question" in column_names else column_names[0]
+        context_column_name = "context" if "context" in column_names else column_names[1]
+    
     answer_column_name = "answers" if "answers" in column_names else column_names[2]
 
     # Padding side determines if we do (question|context) or (context|question).
@@ -498,6 +512,7 @@ def main():
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
             padding="max_length" if args.pad_to_max_length else False,
+            add_special_tokens=True
         )
 
         # Since one example might give us several features if it has a long context, we need a map from a feature to
@@ -612,6 +627,55 @@ def main():
         # corresponding example_id and we will store the offset mappings.
         tokenized_examples["example_id"] = []
 
+        #create start and end pos
+        offset_mapping = tokenized_examples["offset_mapping"]
+        tokenized_examples["start_positions"] = []
+        tokenized_examples["end_positions"] = []
+
+        for i, offsets in enumerate(offset_mapping):
+            # We will label impossible answers with the index of the CLS token.
+            input_ids = tokenized_examples["input_ids"][i]
+            cls_index = input_ids.index(tokenizer.unk_token_id)
+
+            # Grab the sequence corresponding to that example (to know what is the context and what is the question).
+            sequence_ids = tokenized_examples.sequence_ids(i)
+
+            # One example can give several spans, this is the index of the example containing this span of text.
+            sample_index = sample_mapping[i]
+            answers = examples[answer_column_name][sample_index]
+            # If no answers are given, set the cls_index as answer.
+            if len(answers["answer_start"]) == 0:
+                tokenized_examples["start_positions"].append(cls_index)
+                tokenized_examples["end_positions"].append(cls_index)
+            else:
+                # Start/end character index of the answer in the text.
+                start_char = answers["answer_start"][0]
+                end_char = start_char + len(answers["text"][0])
+
+                # Start token index of the current span in the text.
+                token_start_index = 0
+                while sequence_ids[token_start_index] != (1 if pad_on_right else 0):
+                    token_start_index += 1
+
+                # End token index of the current span in the text.
+                token_end_index = len(input_ids) - 1
+                while sequence_ids[token_end_index] != (1 if pad_on_right else 0):
+                    token_end_index -= 1
+
+                # Detect if the answer is out of the span (in which case this feature is labeled with the CLS index).
+                if not (offsets[token_start_index][0] <= start_char and offsets[token_end_index][1] >= end_char):
+                    tokenized_examples["start_positions"].append(cls_index)
+                    tokenized_examples["end_positions"].append(cls_index)
+                else:
+                    # Otherwise move the token_start_index and token_end_index to the two ends of the answer.
+                    # Note: we could go after the last offset if the answer is the last word (edge case).
+                    while token_start_index < len(offsets) and offsets[token_start_index][0] <= start_char:
+                        token_start_index += 1
+                    tokenized_examples["start_positions"].append(token_start_index - 1)
+                    while offsets[token_end_index][1] >= end_char:
+                        token_end_index -= 1
+                    tokenized_examples["end_positions"].append(token_end_index + 1)
+
         for i in range(len(tokenized_examples["input_ids"])):
             # Grab the sequence corresponding to that example (to know what is the context and what is the question).
             sequence_ids = tokenized_examples.sequence_ids(i)
@@ -635,7 +699,9 @@ def main():
     eval_examples = raw_datasets["validation"]
     if args.max_eval_samples is not None:
         # We will select sample from whole data
-        eval_examples = eval_examples.select(range(args.max_eval_samples))
+        eval_samples_indices = random.sample(list(range(len(eval_examples))), 
+            args.max_eval_samples)
+        eval_examples = eval_examples.select(eval_samples_indices)
     # Validation Feature Creation
     with accelerator.main_process_first():
         eval_dataset = eval_examples.map(
@@ -881,6 +947,7 @@ def main():
                 loss = outputs.loss
                 # We keep track of the loss at each epoch
                 if args.with_tracking:
+                    logger.info(f"epoch {epoch} training step {step} loss: {loss.detach().float()}")
                     total_loss += loss.detach().float()
 
                 accelerator.backward(loss)
@@ -940,6 +1007,9 @@ def main():
             outputs = model(**batch)
             start_logits = outputs.start_logits
             end_logits = outputs.end_logits
+            loss = outputs.loss
+            if args.with_tracking:
+                logger.info(f"eval's step {step} loss: {loss.detach().float()}")
 
             if not args.pad_to_max_length:  # necessary to pad predictions and labels for being gathered
                 start_logits = accelerator.pad_across_processes(start_logits, dim=1, pad_index=-100)
