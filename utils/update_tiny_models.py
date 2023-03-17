@@ -5,10 +5,10 @@ from create_dummy_models import create_tiny_models
 
 if __name__ == "__main__":
 
-    with open("../tests/utils/tiny_model_summary.json") as fp:
+    with open("tests/utils/tiny_model_summary.json") as fp:
         tiny_model_info = json.load(fp)
 
-    tiny_models_on_hub = {}
+    tiny_models_on_hub = set()
     for name in tiny_model_info:
         tiny_models_on_hub.update(tiny_model_info[name]["model_classes"])
     existing_model_classes = sorted(list(tiny_models_on_hub))
