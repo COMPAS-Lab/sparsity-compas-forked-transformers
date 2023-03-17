@@ -1129,6 +1129,10 @@ def build_tiny_model_summary(results):
                 # tiny model is not created for `arch_name`
                 if results[config_name][framework][arch_name] is None:
                     continue
+                elif "model" not in results[config_name][framework][arch_name]:
+                    continue
+                elif results[config_name][framework][arch_name]["model"] is None:
+                    continue
                 if base_arch_name not in tiny_model_summary:
                     tiny_model_summary[base_arch_name] = {}
                 tiny_model_summary[base_arch_name].update(
@@ -1138,7 +1142,7 @@ def build_tiny_model_summary(results):
                     }
                 )
                 tiny_model_summary[base_arch_name]["model_classes"] = sorted(
-                    tiny_model_summary[base_arch_name].get("model_classes", []).append(arch_name)
+                    tiny_model_summary[base_arch_name].get("model_classes", []) + [arch_name]
                 )
 
     return tiny_model_summary
