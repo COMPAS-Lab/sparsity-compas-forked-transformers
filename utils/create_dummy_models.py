@@ -1232,7 +1232,7 @@ def create_tiny_models(
 
     to_create = {}
     for c in config_classes:
-        processors = processor_type_map[c],
+        processors = processor_type_map[c]
         models = get_architectures_from_config_class(c, pytorch_arch_mappings, models_to_skip)
         tf_models = get_architectures_from_config_class(c, tensorflow_arch_mappings, models_to_skip)
         if len(models) + len(tf_models) > 0:
