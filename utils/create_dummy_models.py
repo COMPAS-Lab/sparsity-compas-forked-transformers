@@ -1110,7 +1110,8 @@ def build_tiny_model_summary(results):
       model architecture name:
         {
           "tokenizer_classes": [...],
-          "processor_classes": [...]
+          "processor_classes": [...],
+          "model_classes": [...],
         }
       ..
     }
@@ -1118,19 +1119,25 @@ def build_tiny_model_summary(results):
     tiny_model_summary = {}
     for config_name in results:
         processors = [key for key, value in results[config_name]["processor"].items()]
-        tokenizer_classes = [x for x in processors if x.endswith("TokenizerFast") or x.endswith("Tokenizer")]
-        processor_classes = [x for x in processors if x not in tokenizer_classes]
+        tokenizer_classes = sorted([x for x in processors if x.endswith("TokenizerFast") or x.endswith("Tokenizer")])
+        processor_classes = sorted([x for x in processors if x not in tokenizer_classes])
         for framework in FRAMEWORKS:
             if framework not in results[config_name]:
                 continue
             for arch_name in results[config_name][framework]:
+                base_arch_name = arch_name[2:] if arch_name.startswith("TF") else arch_name
                 # tiny model is not created for `arch_name`
                 if results[config_name][framework][arch_name] is None:
                     continue
-                tiny_model_summary[arch_name] = {
-                    "tokenizer_classes": tokenizer_classes,
-                    "processor_classes": processor_classes,
-                }
+                tiny_model_summary[base_arch_name].update(
+                    {
+                        "tokenizer_classes": tokenizer_classes,
+                        "processor_classes": processor_classes,
+                    }
+                )
+                tiny_model_summary[base_arch_name]["model_classes"] = sorted(
+                    tiny_model_summary[base_arch_name].get("model_classes", []).append(arch_name)
+                )
 
     return tiny_model_summary
 
