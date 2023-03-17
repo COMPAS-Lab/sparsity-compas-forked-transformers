@@ -1129,6 +1129,8 @@ def build_tiny_model_summary(results):
                 # tiny model is not created for `arch_name`
                 if results[config_name][framework][arch_name] is None:
                     continue
+                if base_arch_name not in tiny_model_summary:
+                    tiny_model_summary[base_arch_name] = {}
                 tiny_model_summary[base_arch_name].update(
                     {
                         "tokenizer_classes": tokenizer_classes,
