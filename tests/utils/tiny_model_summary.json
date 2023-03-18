@@ -1,1360 +1,4 @@
 {
-    "AlbertModel": {
-        "tokenizer_classes": [
-            "AlbertTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "AlbertModel",
-            "TFAlbertModel"
-        ]
-    },
-    "BartModel": {
-        "tokenizer_classes": [
-            "BartTokenizerFast",
-            "BartTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "BartModel",
-            "TFBartModel"
-        ]
-    },
-    "BeitModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "BeitImageProcessor"
-        ],
-        "model_classes": [
-            "BeitModel"
-        ]
-    },
-    "BertLMHeadModel": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "BertLMHeadModel",
-            "TFBertLMHeadModel"
-        ]
-    },
-    "BertModel": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "BertModel",
-            "TFBertModel"
-        ]
-    },
-    "BigBirdModel": {
-        "tokenizer_classes": [
-            "BigBirdTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "BigBirdModel"
-        ]
-    },
-    "BigBirdPegasusModel": {
-        "tokenizer_classes": [
-            "PegasusTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "BigBirdPegasusModel"
-        ]
-    },
-    "BlenderbotSmallModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [],
-        "model_classes": [
-            "BlenderbotSmallModel",
-            "TFBlenderbotSmallModel"
-        ]
-    },
-    "BlenderbotModel": {
-        "tokenizer_classes": [
-            "BlenderbotTokenizerFast",
-            "BlenderbotTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "BlenderbotModel",
-            "TFBlenderbotModel"
-        ]
-    },
-    "BlipModel": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [
-            "BlipImageProcessor"
-        ],
-        "model_classes": [
-            "BlipModel"
-        ]
-    },
-    "BlipForConditionalGeneration": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [
-            "BlipImageProcessor"
-        ],
-        "model_classes": [
-            "BlipForConditionalGeneration"
-        ]
-    },
-    "Blip2Model": {
-        "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
-        ],
-        "processor_classes": [
-            "BlipImageProcessor"
-        ],
-        "model_classes": [
-            "Blip2Model"
-        ]
-    },
-    "Blip2ForConditionalGeneration": {
-        "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
-        ],
-        "processor_classes": [
-            "BlipImageProcessor"
-        ],
-        "model_classes": [
-            "Blip2ForConditionalGeneration"
-        ]
-    },
-    "BloomModel": {
-        "tokenizer_classes": [
-            "BloomTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "BloomModel"
-        ]
-    },
-    "CanineModel": {
-        "tokenizer_classes": [
-            "CanineTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "CanineModel"
-        ]
-    },
-    "CLIPModel": {
-        "tokenizer_classes": [
-            "CLIPTokenizerFast",
-            "CLIPTokenizer"
-        ],
-        "processor_classes": [
-            "CLIPImageProcessor"
-        ],
-        "model_classes": [
-            "CLIPModel",
-            "TFCLIPModel"
-        ]
-    },
-    "CodeGenModel": {
-        "tokenizer_classes": [
-            "CodeGenTokenizerFast",
-            "CodeGenTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "CodeGenModel"
-        ]
-    },
-    "ConditionalDetrModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ConditionalDetrFeatureExtractor"
-        ],
-        "model_classes": [
-            "ConditionalDetrModel"
-        ]
-    },
-    "ConvBertModel": {
-        "tokenizer_classes": [
-            "ConvBertTokenizerFast",
-            "ConvBertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "ConvBertModel",
-            "TFConvBertModel"
-        ]
-    },
-    "ConvNextModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ConvNextImageProcessor"
-        ],
-        "model_classes": [
-            "ConvNextModel",
-            "TFConvNextModel"
-        ]
-    },
-    "CTRLLMHeadModel": {
-        "tokenizer_classes": [
-            "CTRLTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "CTRLLMHeadModel",
-            "TFCTRLLMHeadModel"
-        ]
-    },
-    "CTRLModel": {
-        "tokenizer_classes": [
-            "CTRLTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "CTRLModel",
-            "TFCTRLModel"
-        ]
-    },
-    "CvtModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ConvNextImageProcessor"
-        ],
-        "model_classes": [
-            "CvtModel",
-            "TFCvtModel"
-        ]
-    },
-    "Data2VecAudioModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "Wav2Vec2FeatureExtractor"
-        ],
-        "model_classes": [
-            "Data2VecAudioModel"
-        ]
-    },
-    "Data2VecTextModel": {
-        "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "Data2VecTextModel"
-        ]
-    },
-    "Data2VecVisionModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "BeitImageProcessor"
-        ],
-        "model_classes": [
-            "Data2VecVisionModel",
-            "TFData2VecVisionModel"
-        ]
-    },
-    "DebertaV2Model": {
-        "tokenizer_classes": [
-            "DebertaV2TokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "DebertaV2Model",
-            "TFDebertaV2Model"
-        ]
-    },
-    "DebertaModel": {
-        "tokenizer_classes": [
-            "DebertaTokenizerFast",
-            "DebertaTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "DebertaModel",
-            "TFDebertaModel"
-        ]
-    },
-    "DeformableDetrModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "DeformableDetrFeatureExtractor"
-        ],
-        "model_classes": [
-            "DeformableDetrModel"
-        ]
-    },
-    "DeiTModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "DeiTImageProcessor"
-        ],
-        "model_classes": [
-            "DeiTModel",
-            "TFDeiTModel"
-        ]
-    },
-    "DetrModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "DetrFeatureExtractor"
-        ],
-        "model_classes": [
-            "DetrModel"
-        ]
-    },
-    "DistilBertModel": {
-        "tokenizer_classes": [
-            "DistilBertTokenizerFast",
-            "DistilBertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "DistilBertModel",
-            "TFDistilBertModel"
-        ]
-    },
-    "DonutSwinModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "DonutFeatureExtractor"
-        ],
-        "model_classes": [
-            "DonutSwinModel"
-        ]
-    },
-    "DPTModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "DPTImageProcessor"
-        ],
-        "model_classes": [
-            "DPTModel"
-        ]
-    },
-    "ElectraModel": {
-        "tokenizer_classes": [
-            "ElectraTokenizerFast",
-            "ElectraTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "ElectraModel",
-            "TFElectraModel"
-        ]
-    },
-    "ErnieModel": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "ErnieModel"
-        ]
-    },
-    "EsmModel": {
-        "tokenizer_classes": [
-            "EsmTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "EsmModel",
-            "TFEsmModel"
-        ]
-    },
-    "FlaubertModel": {
-        "tokenizer_classes": [
-            "FlaubertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "FlaubertModel",
-            "TFFlaubertModel"
-        ]
-    },
-    "FlaubertWithLMHeadModel": {
-        "tokenizer_classes": [
-            "FlaubertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "FlaubertWithLMHeadModel",
-            "TFFlaubertWithLMHeadModel"
-        ]
-    },
-    "FlavaModel": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [
-            "FlavaImageProcessor"
-        ],
-        "model_classes": [
-            "FlavaModel"
-        ]
-    },
-    "FNetModel": {
-        "tokenizer_classes": [
-            "FNetTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "FNetModel"
-        ]
-    },
-    "FSMTModel": {
-        "tokenizer_classes": [
-            "FSMTTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "FSMTModel"
-        ]
-    },
-    "FunnelBaseModel": {
-        "tokenizer_classes": [
-            "FunnelTokenizerFast",
-            "FunnelTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "FunnelBaseModel",
-            "TFFunnelBaseModel"
-        ]
-    },
-    "FunnelModel": {
-        "tokenizer_classes": [
-            "FunnelTokenizerFast",
-            "FunnelTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "FunnelModel",
-            "TFFunnelModel"
-        ]
-    },
-    "GLPNModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "GLPNImageProcessor"
-        ],
-        "model_classes": [
-            "GLPNModel"
-        ]
-    },
-    "GPT2LMHeadModel": {
-        "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "GPT2LMHeadModel",
-            "TFGPT2LMHeadModel"
-        ]
-    },
-    "GPT2Model": {
-        "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "GPT2Model",
-            "TFGPT2Model"
-        ]
-    },
-    "GPTNeoModel": {
-        "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "GPTNeoModel"
-        ]
-    },
-    "GPTNeoXModel": {
-        "tokenizer_classes": [
-            "GPTNeoXTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "GPTNeoXModel"
-        ]
-    },
-    "GPTNeoXJapaneseModel": {
-        "tokenizer_classes": [
-            "GPTNeoXJapaneseTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "GPTNeoXJapaneseModel"
-        ]
-    },
-    "GPTJModel": {
-        "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "GPTJModel",
-            "TFGPTJModel"
-        ]
-    },
-    "GroupViTModel": {
-        "tokenizer_classes": [
-            "CLIPTokenizerFast",
-            "CLIPTokenizer"
-        ],
-        "processor_classes": [
-            "CLIPImageProcessor"
-        ],
-        "model_classes": [
-            "GroupViTModel",
-            "TFGroupViTModel"
-        ]
-    },
-    "HubertModel": {
-        "tokenizer_classes": [
-            "Wav2Vec2CTCTokenizer"
-        ],
-        "processor_classes": [
-            "Wav2Vec2FeatureExtractor"
-        ],
-        "model_classes": [
-            "HubertModel",
-            "TFHubertModel"
-        ]
-    },
-    "IBertModel": {
-        "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "IBertModel"
-        ]
-    },
-    "ImageGPTModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ImageGPTImageProcessor"
-        ],
-        "model_classes": [
-            "ImageGPTModel"
-        ]
-    },
-    "LayoutLMModel": {
-        "tokenizer_classes": [
-            "LayoutLMTokenizerFast",
-            "LayoutLMTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "LayoutLMModel",
-            "TFLayoutLMModel"
-        ]
-    },
-    "LayoutLMv2Model": {
-        "tokenizer_classes": [
-            "LayoutLMv2TokenizerFast",
-            "LayoutLMv2Tokenizer"
-        ],
-        "processor_classes": [
-            "LayoutLMv2ImageProcessor"
-        ],
-        "model_classes": [
-            "LayoutLMv2Model"
-        ]
-    },
-    "LayoutLMv3Model": {
-        "tokenizer_classes": [
-            "LayoutLMv3TokenizerFast",
-            "LayoutLMv3Tokenizer"
-        ],
-        "processor_classes": [
-            "LayoutLMv3ImageProcessor"
-        ],
-        "model_classes": [
-            "LayoutLMv3Model",
-            "TFLayoutLMv3Model"
-        ]
-    },
-    "LEDModel": {
-        "tokenizer_classes": [
-            "LEDTokenizerFast",
-            "LEDTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "LEDModel",
-            "TFLEDModel"
-        ]
-    },
-    "LevitModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "LevitImageProcessor"
-        ],
-        "model_classes": [
-            "LevitModel"
-        ]
-    },
-    "LiltModel": {
-        "tokenizer_classes": [
-            "LayoutLMv3TokenizerFast",
-            "LayoutLMv3Tokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "LiltModel"
-        ]
-    },
-    "LongformerModel": {
-        "tokenizer_classes": [
-            "LongformerTokenizerFast",
-            "LongformerTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "LongformerModel",
-            "TFLongformerModel"
-        ]
-    },
-    "LongT5Model": {
-        "tokenizer_classes": [
-            "T5TokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "LongT5Model"
-        ]
-    },
-    "LukeModel": {
-        "tokenizer_classes": [
-            "LukeTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "LukeModel"
-        ]
-    },
-    "LxmertModel": {
-        "tokenizer_classes": [
-            "LxmertTokenizerFast",
-            "LxmertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "LxmertModel",
-            "TFLxmertModel"
-        ]
-    },
-    "M2M100Model": {
-        "tokenizer_classes": [
-            "M2M100Tokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "M2M100Model"
-        ]
-    },
-    "MarianMTModel": {
-        "tokenizer_classes": [
-            "MarianTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "MarianMTModel",
-            "TFMarianMTModel"
-        ]
-    },
-    "MarianModel": {
-        "tokenizer_classes": [
-            "MarianTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "MarianModel",
-            "TFMarianModel"
-        ]
-    },
-    "MarkupLMModel": {
-        "tokenizer_classes": [
-            "MarkupLMTokenizerFast",
-            "MarkupLMTokenizer"
-        ],
-        "processor_classes": [
-            "MarkupLMFeatureExtractor"
-        ],
-        "model_classes": [
-            "MarkupLMModel"
-        ]
-    },
-    "MaskFormerModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "MaskFormerFeatureExtractor"
-        ],
-        "model_classes": [
-            "MaskFormerModel"
-        ]
-    },
-    "MBartModel": {
-        "tokenizer_classes": [
-            "MBartTokenizerFast",
-            "MBartTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "MBartModel",
-            "TFMBartModel"
-        ]
-    },
-    "MCTCTModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "MCTCTFeatureExtractor"
-        ],
-        "model_classes": [
-            "MCTCTModel"
-        ]
-    },
-    "MegatronBertModel": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "MegatronBertModel"
-        ]
-    },
-    "MobileBertModel": {
-        "tokenizer_classes": [
-            "MobileBertTokenizerFast",
-            "MobileBertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "MobileBertModel",
-            "TFMobileBertModel"
-        ]
-    },
-    "MobileNetV2Model": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "MobileNetV2ImageProcessor"
-        ],
-        "model_classes": [
-            "MobileNetV2Model"
-        ]
-    },
-    "MobileViTModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "MobileViTImageProcessor"
-        ],
-        "model_classes": [
-            "MobileViTModel",
-            "TFMobileViTModel"
-        ]
-    },
-    "MPNetModel": {
-        "tokenizer_classes": [
-            "MPNetTokenizerFast",
-            "MPNetTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "MPNetModel",
-            "TFMPNetModel"
-        ]
-    },
-    "MvpModel": {
-        "tokenizer_classes": [
-            "MvpTokenizerFast",
-            "MvpTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "MvpModel"
-        ]
-    },
-    "NezhaModel": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "NezhaModel"
-        ]
-    },
-    "NystromformerModel": {
-        "tokenizer_classes": [
-            "AlbertTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "NystromformerModel"
-        ]
-    },
-    "OpenAIGPTLMHeadModel": {
-        "tokenizer_classes": [
-            "OpenAIGPTTokenizerFast",
-            "OpenAIGPTTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "OpenAIGPTLMHeadModel",
-            "TFOpenAIGPTLMHeadModel"
-        ]
-    },
-    "OpenAIGPTModel": {
-        "tokenizer_classes": [
-            "OpenAIGPTTokenizerFast",
-            "OpenAIGPTTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "OpenAIGPTModel",
-            "TFOpenAIGPTModel"
-        ]
-    },
-    "OPTModel": {
-        "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "OPTModel",
-            "TFOPTModel"
-        ]
-    },
-    "OwlViTModel": {
-        "tokenizer_classes": [
-            "CLIPTokenizerFast",
-            "CLIPTokenizer"
-        ],
-        "processor_classes": [
-            "OwlViTFeatureExtractor"
-        ],
-        "model_classes": [
-            "OwlViTModel"
-        ]
-    },
-    "PegasusModel": {
-        "tokenizer_classes": [
-            "PegasusTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "PegasusModel",
-            "TFPegasusModel"
-        ]
-    },
-    "PegasusXModel": {
-        "tokenizer_classes": [
-            "PegasusTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "PegasusXModel"
-        ]
-    },
-    "PerceiverModel": {
-        "tokenizer_classes": [
-            "PerceiverTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "PerceiverModel"
-        ]
-    },
-    "PLBartModel": {
-        "tokenizer_classes": [
-            "PLBartTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "PLBartModel"
-        ]
-    },
-    "PoolFormerModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "PoolFormerImageProcessor"
-        ],
-        "model_classes": [
-            "PoolFormerModel"
-        ]
-    },
-    "ProphetNetModel": {
-        "tokenizer_classes": [
-            "ProphetNetTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "ProphetNetModel"
-        ]
-    },
-    "ReformerModel": {
-        "tokenizer_classes": [
-            "ReformerTokenizerFast",
-            "ReformerTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "ReformerModel"
-        ]
-    },
-    "RegNetModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ConvNextImageProcessor"
-        ],
-        "model_classes": [
-            "RegNetModel",
-            "TFRegNetModel"
-        ]
-    },
-    "RemBertModel": {
-        "tokenizer_classes": [
-            "RemBertTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "RemBertModel",
-            "TFRemBertModel"
-        ]
-    },
-    "ResNetModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ConvNextImageProcessor"
-        ],
-        "model_classes": [
-            "ResNetModel",
-            "TFResNetModel"
-        ]
-    },
-    "RobertaModel": {
-        "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "RobertaModel",
-            "TFRobertaModel"
-        ]
-    },
-    "RoCBertModel": {
-        "tokenizer_classes": [
-            "RoCBertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "RoCBertModel"
-        ]
-    },
-    "RoFormerModel": {
-        "tokenizer_classes": [
-            "RoFormerTokenizerFast",
-            "RoFormerTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "RoFormerModel",
-            "TFRoFormerModel"
-        ]
-    },
-    "SegformerModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "SegformerImageProcessor"
-        ],
-        "model_classes": [
-            "SegformerModel",
-            "TFSegformerModel"
-        ]
-    },
-    "SEWDModel": {
-        "tokenizer_classes": [
-            "Wav2Vec2CTCTokenizer"
-        ],
-        "processor_classes": [
-            "Wav2Vec2FeatureExtractor"
-        ],
-        "model_classes": [
-            "SEWDModel"
-        ]
-    },
-    "SEWModel": {
-        "tokenizer_classes": [
-            "Wav2Vec2CTCTokenizer"
-        ],
-        "processor_classes": [
-            "Wav2Vec2FeatureExtractor"
-        ],
-        "model_classes": [
-            "SEWModel"
-        ]
-    },
-    "Speech2TextModel": {
-        "tokenizer_classes": [
-            "Speech2TextTokenizer"
-        ],
-        "processor_classes": [
-            "Speech2TextFeatureExtractor"
-        ],
-        "model_classes": [
-            "Speech2TextModel",
-            "TFSpeech2TextModel"
-        ]
-    },
-    "SplinterModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [],
-        "model_classes": [
-            "SplinterModel"
-        ]
-    },
-    "SqueezeBertModel": {
-        "tokenizer_classes": [
-            "SqueezeBertTokenizerFast",
-            "SqueezeBertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "SqueezeBertModel"
-        ]
-    },
-    "SwinModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ViTImageProcessor"
-        ],
-        "model_classes": [
-            "SwinModel",
-            "TFSwinModel"
-        ]
-    },
-    "Swinv2Model": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ViTImageProcessor"
-        ],
-        "model_classes": [
-            "Swinv2Model"
-        ]
-    },
-    "SwitchTransformersModel": {
-        "tokenizer_classes": [
-            "T5TokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "SwitchTransformersModel"
-        ]
-    },
-    "T5Model": {
-        "tokenizer_classes": [
-            "T5TokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "T5Model",
-            "TFT5Model"
-        ]
-    },
-    "TableTransformerModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "DetrFeatureExtractor"
-        ],
-        "model_classes": [
-            "TableTransformerModel"
-        ]
-    },
-    "TapasModel": {
-        "tokenizer_classes": [
-            "TapasTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "TapasModel",
-            "TFTapasModel"
-        ]
-    },
-    "TransfoXLLMHeadModel": {
-        "tokenizer_classes": [
-            "TransfoXLTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "TransfoXLLMHeadModel",
-            "TFTransfoXLLMHeadModel"
-        ]
-    },
-    "TransfoXLModel": {
-        "tokenizer_classes": [
-            "TransfoXLTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "TransfoXLModel",
-            "TFTransfoXLModel"
-        ]
-    },
-    "UniSpeechSatModel": {
-        "tokenizer_classes": [
-            "Wav2Vec2CTCTokenizer"
-        ],
-        "processor_classes": [
-            "Wav2Vec2FeatureExtractor"
-        ],
-        "model_classes": [
-            "UniSpeechSatModel"
-        ]
-    },
-    "UniSpeechModel": {
-        "tokenizer_classes": [
-            "Wav2Vec2CTCTokenizer"
-        ],
-        "processor_classes": [
-            "Wav2Vec2FeatureExtractor"
-        ],
-        "model_classes": [
-            "UniSpeechModel"
-        ]
-    },
-    "VanModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ConvNextImageProcessor"
-        ],
-        "model_classes": [
-            "VanModel"
-        ]
-    },
-    "VideoMAEModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "VideoMAEImageProcessor"
-        ],
-        "model_classes": [
-            "VideoMAEModel"
-        ]
-    },
-    "ViltModel": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [
-            "ViltImageProcessor"
-        ],
-        "model_classes": [
-            "ViltModel"
-        ]
-    },
-    "VisualBertModel": {
-        "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "VisualBertModel"
-        ]
-    },
-    "ViTModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ViTImageProcessor"
-        ],
-        "model_classes": [
-            "ViTModel",
-            "TFViTModel"
-        ]
-    },
-    "ViTMAEModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ViTImageProcessor"
-        ],
-        "model_classes": [
-            "ViTMAEModel",
-            "TFViTMAEModel"
-        ]
-    },
-    "ViTMSNModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "ViTImageProcessor"
-        ],
-        "model_classes": [
-            "ViTMSNModel"
-        ]
-    },
-    "Wav2Vec2ConformerModel": {
-        "tokenizer_classes": [
-            "Wav2Vec2CTCTokenizer"
-        ],
-        "processor_classes": [
-            "Wav2Vec2FeatureExtractor"
-        ],
-        "model_classes": [
-            "Wav2Vec2ConformerModel"
-        ]
-    },
-    "Wav2Vec2Model": {
-        "tokenizer_classes": [
-            "Wav2Vec2CTCTokenizer"
-        ],
-        "processor_classes": [
-            "Wav2Vec2FeatureExtractor"
-        ],
-        "model_classes": [
-            "Wav2Vec2Model",
-            "TFWav2Vec2Model"
-        ]
-    },
-    "WavLMModel": {
-        "tokenizer_classes": [
-            "Wav2Vec2CTCTokenizer"
-        ],
-        "processor_classes": [
-            "Wav2Vec2FeatureExtractor"
-        ],
-        "model_classes": [
-            "WavLMModel"
-        ]
-    },
-    "WhisperModel": {
-        "tokenizer_classes": [
-            "WhisperTokenizer"
-        ],
-        "processor_classes": [
-            "WhisperFeatureExtractor"
-        ],
-        "model_classes": [
-            "WhisperModel",
-            "TFWhisperModel"
-        ]
-    },
-    "XCLIPModel": {
-        "tokenizer_classes": [
-            "CLIPTokenizerFast",
-            "CLIPTokenizer"
-        ],
-        "processor_classes": [
-            "VideoMAEImageProcessor",
-            "CLIPImageProcessor"
-        ],
-        "model_classes": [
-            "XCLIPModel"
-        ]
-    },
-    "XGLMModel": {
-        "tokenizer_classes": [
-            "XGLMTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "XGLMModel",
-            "TFXGLMModel"
-        ]
-    },
-    "XLMRobertaXLModel": {
-        "tokenizer_classes": [
-            "XLMRobertaTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "XLMRobertaXLModel"
-        ]
-    },
-    "XLMModel": {
-        "tokenizer_classes": [
-            "XLMTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "XLMModel",
-            "TFXLMModel"
-        ]
-    },
-    "XLMWithLMHeadModel": {
-        "tokenizer_classes": [
-            "XLMTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "XLMWithLMHeadModel",
-            "TFXLMWithLMHeadModel"
-        ]
-    },
-    "XLNetLMHeadModel": {
-        "tokenizer_classes": [
-            "XLNetTokenizerFast",
-            "XLNetTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "XLNetLMHeadModel",
-            "TFXLNetLMHeadModel"
-        ]
-    },
-    "XLNetModel": {
-        "tokenizer_classes": [
-            "XLNetTokenizerFast",
-            "XLNetTokenizer"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "XLNetModel",
-            "TFXLNetModel"
-        ]
-    },
-    "YolosModel": {
-        "tokenizer_classes": [],
-        "processor_classes": [
-            "YolosFeatureExtractor"
-        ],
-        "model_classes": [
-            "YolosModel"
-        ]
-    },
-    "YosoModel": {
-        "tokenizer_classes": [
-            "AlbertTokenizerFast"
-        ],
-        "processor_classes": [],
-        "model_classes": [
-            "YosoModel"
-        ]
-    },
     "AlbertForMaskedLM": {
         "tokenizer_classes": [
             "AlbertTokenizerFast"
@@ -1415,10 +59,20 @@
             "TFAlbertForTokenClassification"
         ]
     },
+    "AlbertModel": {
+        "tokenizer_classes": [
+            "AlbertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "AlbertModel",
+            "TFAlbertModel"
+        ]
+    },
     "BartForCausalLM": {
         "tokenizer_classes": [
-            "BartTokenizerFast",
-            "BartTokenizer"
+            "BartTokenizer",
+            "BartTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1427,8 +81,8 @@
     },
     "BartForConditionalGeneration": {
         "tokenizer_classes": [
-            "BartTokenizerFast",
-            "BartTokenizer"
+            "BartTokenizer",
+            "BartTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1438,8 +92,8 @@
     },
     "BartForQuestionAnswering": {
         "tokenizer_classes": [
-            "BartTokenizerFast",
-            "BartTokenizer"
+            "BartTokenizer",
+            "BartTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1448,12 +102,23 @@
     },
     "BartForSequenceClassification": {
         "tokenizer_classes": [
-            "BartTokenizerFast",
-            "BartTokenizer"
+            "BartTokenizer",
+            "BartTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "BartForSequenceClassification"
+        ]
+    },
+    "BartModel": {
+        "tokenizer_classes": [
+            "BartTokenizer",
+            "BartTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "BartModel",
+            "TFBartModel"
         ]
     },
     "BeitForImageClassification": {
@@ -1474,10 +139,19 @@
             "BeitForSemanticSegmentation"
         ]
     },
+    "BeitModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "BeitImageProcessor"
+        ],
+        "model_classes": [
+            "BeitModel"
+        ]
+    },
     "BertForMaskedLM": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1487,8 +161,8 @@
     },
     "BertForMultipleChoice": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1498,8 +172,8 @@
     },
     "BertForNextSentencePrediction": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1509,8 +183,8 @@
     },
     "BertForPreTraining": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1520,8 +194,8 @@
     },
     "BertForQuestionAnswering": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1531,8 +205,8 @@
     },
     "BertForSequenceClassification": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1542,13 +216,35 @@
     },
     "BertForTokenClassification": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "BertForTokenClassification",
             "TFBertForTokenClassification"
+        ]
+    },
+    "BertLMHeadModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "BertLMHeadModel",
+            "TFBertLMHeadModel"
+        ]
+    },
+    "BertModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "BertModel",
+            "TFBertModel"
         ]
     },
     "BigBirdForCausalLM": {
@@ -1614,6 +310,15 @@
             "BigBirdForTokenClassification"
         ]
     },
+    "BigBirdModel": {
+        "tokenizer_classes": [
+            "BigBirdTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "BigBirdModel"
+        ]
+    },
     "BigBirdPegasusForCausalLM": {
         "tokenizer_classes": [
             "PegasusTokenizerFast"
@@ -1650,10 +355,19 @@
             "BigBirdPegasusForSequenceClassification"
         ]
     },
+    "BigBirdPegasusModel": {
+        "tokenizer_classes": [
+            "PegasusTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "BigBirdPegasusModel"
+        ]
+    },
     "BlenderbotForCausalLM": {
         "tokenizer_classes": [
-            "BlenderbotTokenizerFast",
-            "BlenderbotTokenizer"
+            "BlenderbotTokenizer",
+            "BlenderbotTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1662,8 +376,8 @@
     },
     "BlenderbotForConditionalGeneration": {
         "tokenizer_classes": [
-            "BlenderbotTokenizerFast",
-            "BlenderbotTokenizer"
+            "BlenderbotTokenizer",
+            "BlenderbotTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1671,19 +385,92 @@
             "TFBlenderbotForConditionalGeneration"
         ]
     },
+    "BlenderbotModel": {
+        "tokenizer_classes": [
+            "BlenderbotTokenizer",
+            "BlenderbotTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "BlenderbotModel",
+            "TFBlenderbotModel"
+        ]
+    },
     "BlenderbotSmallForCausalLM": {
-        "tokenizer_classes": [],
+        "tokenizer_classes": [
+            "BlenderbotSmallTokenizer"
+        ],
         "processor_classes": [],
         "model_classes": [
             "BlenderbotSmallForCausalLM"
         ]
     },
     "BlenderbotSmallForConditionalGeneration": {
-        "tokenizer_classes": [],
+        "tokenizer_classes": [
+            "BlenderbotSmallTokenizer"
+        ],
         "processor_classes": [],
         "model_classes": [
             "BlenderbotSmallForConditionalGeneration",
             "TFBlenderbotSmallForConditionalGeneration"
+        ]
+    },
+    "BlenderbotSmallModel": {
+        "tokenizer_classes": [
+            "BlenderbotSmallTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "BlenderbotSmallModel",
+            "TFBlenderbotSmallModel"
+        ]
+    },
+    "Blip2ForConditionalGeneration": {
+        "tokenizer_classes": [
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
+        ],
+        "processor_classes": [
+            "BlipImageProcessor"
+        ],
+        "model_classes": [
+            "Blip2ForConditionalGeneration"
+        ]
+    },
+    "Blip2Model": {
+        "tokenizer_classes": [
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
+        ],
+        "processor_classes": [
+            "BlipImageProcessor"
+        ],
+        "model_classes": [
+            "Blip2Model"
+        ]
+    },
+    "BlipForConditionalGeneration": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [
+            "BlipImageProcessor"
+        ],
+        "model_classes": [
+            "BlipForConditionalGeneration"
+        ]
+    },
+    "BlipModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [
+            "BlipImageProcessor"
+        ],
+        "model_classes": [
+            "BlipModel"
         ]
     },
     "BloomForCausalLM": {
@@ -1722,6 +509,28 @@
             "BloomForTokenClassification"
         ]
     },
+    "BloomModel": {
+        "tokenizer_classes": [
+            "BloomTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "BloomModel"
+        ]
+    },
+    "CLIPModel": {
+        "tokenizer_classes": [
+            "CLIPTokenizer",
+            "CLIPTokenizerFast"
+        ],
+        "processor_classes": [
+            "CLIPImageProcessor"
+        ],
+        "model_classes": [
+            "CLIPModel",
+            "TFCLIPModel"
+        ]
+    },
     "CTRLForSequenceClassification": {
         "tokenizer_classes": [
             "CTRLTokenizer"
@@ -1730,6 +539,26 @@
         "model_classes": [
             "CTRLForSequenceClassification",
             "TFCTRLForSequenceClassification"
+        ]
+    },
+    "CTRLLMHeadModel": {
+        "tokenizer_classes": [
+            "CTRLTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "CTRLLMHeadModel",
+            "TFCTRLLMHeadModel"
+        ]
+    },
+    "CTRLModel": {
+        "tokenizer_classes": [
+            "CTRLTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "CTRLModel",
+            "TFCTRLModel"
         ]
     },
     "CanineForMultipleChoice": {
@@ -1768,29 +597,57 @@
             "CanineForTokenClassification"
         ]
     },
+    "CanineModel": {
+        "tokenizer_classes": [
+            "CanineTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "CanineModel"
+        ]
+    },
     "CodeGenForCausalLM": {
         "tokenizer_classes": [
-            "CodeGenTokenizerFast",
-            "CodeGenTokenizer"
+            "CodeGenTokenizer",
+            "CodeGenTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "CodeGenForCausalLM"
         ]
     },
+    "CodeGenModel": {
+        "tokenizer_classes": [
+            "CodeGenTokenizer",
+            "CodeGenTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "CodeGenModel"
+        ]
+    },
     "ConditionalDetrForObjectDetection": {
         "tokenizer_classes": [],
         "processor_classes": [
-            "ConditionalDetrFeatureExtractor"
+            "ConditionalDetrImageProcessor"
         ],
         "model_classes": [
             "ConditionalDetrForObjectDetection"
         ]
     },
+    "ConditionalDetrModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ConditionalDetrImageProcessor"
+        ],
+        "model_classes": [
+            "ConditionalDetrModel"
+        ]
+    },
     "ConvBertForMaskedLM": {
         "tokenizer_classes": [
-            "ConvBertTokenizerFast",
-            "ConvBertTokenizer"
+            "ConvBertTokenizer",
+            "ConvBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1800,8 +657,8 @@
     },
     "ConvBertForMultipleChoice": {
         "tokenizer_classes": [
-            "ConvBertTokenizerFast",
-            "ConvBertTokenizer"
+            "ConvBertTokenizer",
+            "ConvBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1811,8 +668,8 @@
     },
     "ConvBertForQuestionAnswering": {
         "tokenizer_classes": [
-            "ConvBertTokenizerFast",
-            "ConvBertTokenizer"
+            "ConvBertTokenizer",
+            "ConvBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1822,8 +679,8 @@
     },
     "ConvBertForSequenceClassification": {
         "tokenizer_classes": [
-            "ConvBertTokenizerFast",
-            "ConvBertTokenizer"
+            "ConvBertTokenizer",
+            "ConvBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1833,13 +690,24 @@
     },
     "ConvBertForTokenClassification": {
         "tokenizer_classes": [
-            "ConvBertTokenizerFast",
-            "ConvBertTokenizer"
+            "ConvBertTokenizer",
+            "ConvBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "ConvBertForTokenClassification",
             "TFConvBertForTokenClassification"
+        ]
+    },
+    "ConvBertModel": {
+        "tokenizer_classes": [
+            "ConvBertTokenizer",
+            "ConvBertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "ConvBertModel",
+            "TFConvBertModel"
         ]
     },
     "ConvNextForImageClassification": {
@@ -1852,6 +720,16 @@
             "TFConvNextForImageClassification"
         ]
     },
+    "ConvNextModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ConvNextImageProcessor"
+        ],
+        "model_classes": [
+            "ConvNextModel",
+            "TFConvNextModel"
+        ]
+    },
     "CvtForImageClassification": {
         "tokenizer_classes": [],
         "processor_classes": [
@@ -1860,6 +738,27 @@
         "model_classes": [
             "CvtForImageClassification",
             "TFCvtForImageClassification"
+        ]
+    },
+    "CvtModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ConvNextImageProcessor"
+        ],
+        "model_classes": [
+            "CvtModel",
+            "TFCvtModel"
+        ]
+    },
+    "DPRQuestionEncoder": {
+        "tokenizer_classes": [
+            "DPRQuestionEncoderTokenizer",
+            "DPRQuestionEncoderTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "DPRQuestionEncoder",
+            "TFDPRQuestionEncoder"
         ]
     },
     "DPTForDepthEstimation": {
@@ -1878,6 +777,15 @@
         ],
         "model_classes": [
             "DPTForSemanticSegmentation"
+        ]
+    },
+    "DPTModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "DPTImageProcessor"
+        ],
+        "model_classes": [
+            "DPTModel"
         ]
     },
     "Data2VecAudioForCTC": {
@@ -1907,10 +815,19 @@
             "Data2VecAudioForXVector"
         ]
     },
+    "Data2VecAudioModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "Data2VecAudioModel"
+        ]
+    },
     "Data2VecTextForCausalLM": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1919,8 +836,8 @@
     },
     "Data2VecTextForMaskedLM": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1929,8 +846,8 @@
     },
     "Data2VecTextForMultipleChoice": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1939,8 +856,8 @@
     },
     "Data2VecTextForQuestionAnswering": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1949,8 +866,8 @@
     },
     "Data2VecTextForSequenceClassification": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -1959,12 +876,22 @@
     },
     "Data2VecTextForTokenClassification": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "Data2VecTextForTokenClassification"
+        ]
+    },
+    "Data2VecTextModel": {
+        "tokenizer_classes": [
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "Data2VecTextModel"
         ]
     },
     "Data2VecVisionForImageClassification": {
@@ -1987,10 +914,20 @@
             "TFData2VecVisionForSemanticSegmentation"
         ]
     },
+    "Data2VecVisionModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "BeitImageProcessor"
+        ],
+        "model_classes": [
+            "Data2VecVisionModel",
+            "TFData2VecVisionModel"
+        ]
+    },
     "DebertaForMaskedLM": {
         "tokenizer_classes": [
-            "DebertaTokenizerFast",
-            "DebertaTokenizer"
+            "DebertaTokenizer",
+            "DebertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2000,8 +937,8 @@
     },
     "DebertaForQuestionAnswering": {
         "tokenizer_classes": [
-            "DebertaTokenizerFast",
-            "DebertaTokenizer"
+            "DebertaTokenizer",
+            "DebertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2011,8 +948,8 @@
     },
     "DebertaForSequenceClassification": {
         "tokenizer_classes": [
-            "DebertaTokenizerFast",
-            "DebertaTokenizer"
+            "DebertaTokenizer",
+            "DebertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2022,13 +959,24 @@
     },
     "DebertaForTokenClassification": {
         "tokenizer_classes": [
-            "DebertaTokenizerFast",
-            "DebertaTokenizer"
+            "DebertaTokenizer",
+            "DebertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "DebertaForTokenClassification",
             "TFDebertaForTokenClassification"
+        ]
+    },
+    "DebertaModel": {
+        "tokenizer_classes": [
+            "DebertaTokenizer",
+            "DebertaTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "DebertaModel",
+            "TFDebertaModel"
         ]
     },
     "DebertaV2ForMaskedLM": {
@@ -2080,13 +1028,32 @@
             "TFDebertaV2ForTokenClassification"
         ]
     },
+    "DebertaV2Model": {
+        "tokenizer_classes": [
+            "DebertaV2TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "DebertaV2Model",
+            "TFDebertaV2Model"
+        ]
+    },
     "DeformableDetrForObjectDetection": {
         "tokenizer_classes": [],
         "processor_classes": [
-            "DeformableDetrFeatureExtractor"
+            "DeformableDetrImageProcessor"
         ],
         "model_classes": [
             "DeformableDetrForObjectDetection"
+        ]
+    },
+    "DeformableDetrModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "DeformableDetrImageProcessor"
+        ],
+        "model_classes": [
+            "DeformableDetrModel"
         ]
     },
     "DeiTForImageClassification": {
@@ -2119,10 +1086,20 @@
             "TFDeiTForMaskedImageModeling"
         ]
     },
+    "DeiTModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "DeiTImageProcessor"
+        ],
+        "model_classes": [
+            "DeiTModel",
+            "TFDeiTModel"
+        ]
+    },
     "DetrForObjectDetection": {
         "tokenizer_classes": [],
         "processor_classes": [
-            "DetrFeatureExtractor"
+            "DetrImageProcessor"
         ],
         "model_classes": [
             "DetrForObjectDetection"
@@ -2131,16 +1108,25 @@
     "DetrForSegmentation": {
         "tokenizer_classes": [],
         "processor_classes": [
-            "DetrFeatureExtractor"
+            "DetrImageProcessor"
         ],
         "model_classes": [
             "DetrForSegmentation"
         ]
     },
+    "DetrModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "DetrImageProcessor"
+        ],
+        "model_classes": [
+            "DetrModel"
+        ]
+    },
     "DistilBertForMaskedLM": {
         "tokenizer_classes": [
-            "DistilBertTokenizerFast",
-            "DistilBertTokenizer"
+            "DistilBertTokenizer",
+            "DistilBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2150,8 +1136,8 @@
     },
     "DistilBertForMultipleChoice": {
         "tokenizer_classes": [
-            "DistilBertTokenizerFast",
-            "DistilBertTokenizer"
+            "DistilBertTokenizer",
+            "DistilBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2161,8 +1147,8 @@
     },
     "DistilBertForQuestionAnswering": {
         "tokenizer_classes": [
-            "DistilBertTokenizerFast",
-            "DistilBertTokenizer"
+            "DistilBertTokenizer",
+            "DistilBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2172,8 +1158,8 @@
     },
     "DistilBertForSequenceClassification": {
         "tokenizer_classes": [
-            "DistilBertTokenizerFast",
-            "DistilBertTokenizer"
+            "DistilBertTokenizer",
+            "DistilBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2183,8 +1169,8 @@
     },
     "DistilBertForTokenClassification": {
         "tokenizer_classes": [
-            "DistilBertTokenizerFast",
-            "DistilBertTokenizer"
+            "DistilBertTokenizer",
+            "DistilBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2192,10 +1178,30 @@
             "TFDistilBertForTokenClassification"
         ]
     },
+    "DistilBertModel": {
+        "tokenizer_classes": [
+            "DistilBertTokenizer",
+            "DistilBertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "DistilBertModel",
+            "TFDistilBertModel"
+        ]
+    },
+    "DonutSwinModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "DonutImageProcessor"
+        ],
+        "model_classes": [
+            "DonutSwinModel"
+        ]
+    },
     "ElectraForCausalLM": {
         "tokenizer_classes": [
-            "ElectraTokenizerFast",
-            "ElectraTokenizer"
+            "ElectraTokenizer",
+            "ElectraTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2204,8 +1210,8 @@
     },
     "ElectraForMaskedLM": {
         "tokenizer_classes": [
-            "ElectraTokenizerFast",
-            "ElectraTokenizer"
+            "ElectraTokenizer",
+            "ElectraTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2215,8 +1221,8 @@
     },
     "ElectraForMultipleChoice": {
         "tokenizer_classes": [
-            "ElectraTokenizerFast",
-            "ElectraTokenizer"
+            "ElectraTokenizer",
+            "ElectraTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2226,8 +1232,8 @@
     },
     "ElectraForPreTraining": {
         "tokenizer_classes": [
-            "ElectraTokenizerFast",
-            "ElectraTokenizer"
+            "ElectraTokenizer",
+            "ElectraTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2237,8 +1243,8 @@
     },
     "ElectraForQuestionAnswering": {
         "tokenizer_classes": [
-            "ElectraTokenizerFast",
-            "ElectraTokenizer"
+            "ElectraTokenizer",
+            "ElectraTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2248,8 +1254,8 @@
     },
     "ElectraForSequenceClassification": {
         "tokenizer_classes": [
-            "ElectraTokenizerFast",
-            "ElectraTokenizer"
+            "ElectraTokenizer",
+            "ElectraTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2259,8 +1265,8 @@
     },
     "ElectraForTokenClassification": {
         "tokenizer_classes": [
-            "ElectraTokenizerFast",
-            "ElectraTokenizer"
+            "ElectraTokenizer",
+            "ElectraTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2268,10 +1274,21 @@
             "TFElectraForTokenClassification"
         ]
     },
+    "ElectraModel": {
+        "tokenizer_classes": [
+            "ElectraTokenizer",
+            "ElectraTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "ElectraModel",
+            "TFElectraModel"
+        ]
+    },
     "ErnieForCausalLM": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2280,8 +1297,8 @@
     },
     "ErnieForMaskedLM": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2290,8 +1307,8 @@
     },
     "ErnieForMultipleChoice": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2300,8 +1317,8 @@
     },
     "ErnieForNextSentencePrediction": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2310,8 +1327,8 @@
     },
     "ErnieForPreTraining": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2320,8 +1337,8 @@
     },
     "ErnieForQuestionAnswering": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2330,8 +1347,8 @@
     },
     "ErnieForSequenceClassification": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2340,12 +1357,22 @@
     },
     "ErnieForTokenClassification": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "ErnieForTokenClassification"
+        ]
+    },
+    "ErnieModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "ErnieModel"
         ]
     },
     "EsmForMaskedLM": {
@@ -2376,6 +1403,16 @@
         "model_classes": [
             "EsmForTokenClassification",
             "TFEsmForTokenClassification"
+        ]
+    },
+    "EsmModel": {
+        "tokenizer_classes": [
+            "EsmTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "EsmModel",
+            "TFEsmModel"
         ]
     },
     "FNetForMaskedLM": {
@@ -2441,6 +1478,15 @@
             "FNetForTokenClassification"
         ]
     },
+    "FNetModel": {
+        "tokenizer_classes": [
+            "FNetTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "FNetModel"
+        ]
+    },
     "FSMTForConditionalGeneration": {
         "tokenizer_classes": [
             "FSMTTokenizer"
@@ -2448,6 +1494,15 @@
         "processor_classes": [],
         "model_classes": [
             "FSMTForConditionalGeneration"
+        ]
+    },
+    "FSMTModel": {
+        "tokenizer_classes": [
+            "FSMTTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "FSMTModel"
         ]
     },
     "FlaubertForMultipleChoice": {
@@ -2490,10 +1545,30 @@
             "TFFlaubertForTokenClassification"
         ]
     },
+    "FlaubertModel": {
+        "tokenizer_classes": [
+            "FlaubertTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "FlaubertModel",
+            "TFFlaubertModel"
+        ]
+    },
+    "FlaubertWithLMHeadModel": {
+        "tokenizer_classes": [
+            "FlaubertTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "FlaubertWithLMHeadModel",
+            "TFFlaubertWithLMHeadModel"
+        ]
+    },
     "FlavaForPreTraining": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [
             "FlavaImageProcessor"
@@ -2502,10 +1577,33 @@
             "FlavaForPreTraining"
         ]
     },
+    "FlavaModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [
+            "FlavaImageProcessor"
+        ],
+        "model_classes": [
+            "FlavaModel"
+        ]
+    },
+    "FunnelBaseModel": {
+        "tokenizer_classes": [
+            "FunnelTokenizer",
+            "FunnelTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "FunnelBaseModel",
+            "TFFunnelBaseModel"
+        ]
+    },
     "FunnelForMaskedLM": {
         "tokenizer_classes": [
-            "FunnelTokenizerFast",
-            "FunnelTokenizer"
+            "FunnelTokenizer",
+            "FunnelTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2515,8 +1613,8 @@
     },
     "FunnelForMultipleChoice": {
         "tokenizer_classes": [
-            "FunnelTokenizerFast",
-            "FunnelTokenizer"
+            "FunnelTokenizer",
+            "FunnelTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2526,8 +1624,8 @@
     },
     "FunnelForPreTraining": {
         "tokenizer_classes": [
-            "FunnelTokenizerFast",
-            "FunnelTokenizer"
+            "FunnelTokenizer",
+            "FunnelTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2537,8 +1635,8 @@
     },
     "FunnelForQuestionAnswering": {
         "tokenizer_classes": [
-            "FunnelTokenizerFast",
-            "FunnelTokenizer"
+            "FunnelTokenizer",
+            "FunnelTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2548,8 +1646,8 @@
     },
     "FunnelForSequenceClassification": {
         "tokenizer_classes": [
-            "FunnelTokenizerFast",
-            "FunnelTokenizer"
+            "FunnelTokenizer",
+            "FunnelTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2559,13 +1657,24 @@
     },
     "FunnelForTokenClassification": {
         "tokenizer_classes": [
-            "FunnelTokenizerFast",
-            "FunnelTokenizer"
+            "FunnelTokenizer",
+            "FunnelTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "FunnelForTokenClassification",
             "TFFunnelForTokenClassification"
+        ]
+    },
+    "FunnelModel": {
+        "tokenizer_classes": [
+            "FunnelTokenizer",
+            "FunnelTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "FunnelModel",
+            "TFFunnelModel"
         ]
     },
     "GLPNForDepthEstimation": {
@@ -2577,10 +1686,19 @@
             "GLPNForDepthEstimation"
         ]
     },
+    "GLPNModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "GLPNImageProcessor"
+        ],
+        "model_classes": [
+            "GLPNModel"
+        ]
+    },
     "GPT2ForSequenceClassification": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2590,18 +1708,40 @@
     },
     "GPT2ForTokenClassification": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "GPT2ForTokenClassification"
         ]
     },
+    "GPT2LMHeadModel": {
+        "tokenizer_classes": [
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "GPT2LMHeadModel",
+            "TFGPT2LMHeadModel"
+        ]
+    },
+    "GPT2Model": {
+        "tokenizer_classes": [
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "GPT2Model",
+            "TFGPT2Model"
+        ]
+    },
     "GPTJForCausalLM": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2611,8 +1751,8 @@
     },
     "GPTJForQuestionAnswering": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2622,8 +1762,8 @@
     },
     "GPTJForSequenceClassification": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2631,10 +1771,21 @@
             "TFGPTJForSequenceClassification"
         ]
     },
+    "GPTJModel": {
+        "tokenizer_classes": [
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "GPTJModel",
+            "TFGPTJModel"
+        ]
+    },
     "GPTNeoForCausalLM": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2643,12 +1794,22 @@
     },
     "GPTNeoForSequenceClassification": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "GPTNeoForSequenceClassification"
+        ]
+    },
+    "GPTNeoModel": {
+        "tokenizer_classes": [
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "GPTNeoModel"
         ]
     },
     "GPTNeoXForCausalLM": {
@@ -2667,6 +1828,37 @@
         "processor_classes": [],
         "model_classes": [
             "GPTNeoXJapaneseForCausalLM"
+        ]
+    },
+    "GPTNeoXJapaneseModel": {
+        "tokenizer_classes": [
+            "GPTNeoXJapaneseTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "GPTNeoXJapaneseModel"
+        ]
+    },
+    "GPTNeoXModel": {
+        "tokenizer_classes": [
+            "GPTNeoXTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "GPTNeoXModel"
+        ]
+    },
+    "GroupViTModel": {
+        "tokenizer_classes": [
+            "CLIPTokenizer",
+            "CLIPTokenizerFast"
+        ],
+        "processor_classes": [
+            "CLIPImageProcessor"
+        ],
+        "model_classes": [
+            "GroupViTModel",
+            "TFGroupViTModel"
         ]
     },
     "HubertForCTC": {
@@ -2691,10 +1883,22 @@
             "HubertForSequenceClassification"
         ]
     },
+    "HubertModel": {
+        "tokenizer_classes": [
+            "Wav2Vec2CTCTokenizer"
+        ],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "HubertModel",
+            "TFHubertModel"
+        ]
+    },
     "IBertForMaskedLM": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2703,8 +1907,8 @@
     },
     "IBertForMultipleChoice": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2713,8 +1917,8 @@
     },
     "IBertForQuestionAnswering": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2723,8 +1927,8 @@
     },
     "IBertForSequenceClassification": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2733,12 +1937,22 @@
     },
     "IBertForTokenClassification": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "IBertForTokenClassification"
+        ]
+    },
+    "IBertModel": {
+        "tokenizer_classes": [
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "IBertModel"
         ]
     },
     "ImageGPTForCausalImageModeling": {
@@ -2759,10 +1973,19 @@
             "ImageGPTForImageClassification"
         ]
     },
+    "ImageGPTModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ImageGPTImageProcessor"
+        ],
+        "model_classes": [
+            "ImageGPTModel"
+        ]
+    },
     "LEDForConditionalGeneration": {
         "tokenizer_classes": [
-            "LEDTokenizerFast",
-            "LEDTokenizer"
+            "LEDTokenizer",
+            "LEDTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2772,8 +1995,8 @@
     },
     "LEDForQuestionAnswering": {
         "tokenizer_classes": [
-            "LEDTokenizerFast",
-            "LEDTokenizer"
+            "LEDTokenizer",
+            "LEDTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2782,18 +2005,29 @@
     },
     "LEDForSequenceClassification": {
         "tokenizer_classes": [
-            "LEDTokenizerFast",
-            "LEDTokenizer"
+            "LEDTokenizer",
+            "LEDTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "LEDForSequenceClassification"
         ]
     },
+    "LEDModel": {
+        "tokenizer_classes": [
+            "LEDTokenizer",
+            "LEDTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "LEDModel",
+            "TFLEDModel"
+        ]
+    },
     "LayoutLMForMaskedLM": {
         "tokenizer_classes": [
-            "LayoutLMTokenizerFast",
-            "LayoutLMTokenizer"
+            "LayoutLMTokenizer",
+            "LayoutLMTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2803,8 +2037,8 @@
     },
     "LayoutLMForQuestionAnswering": {
         "tokenizer_classes": [
-            "LayoutLMTokenizerFast",
-            "LayoutLMTokenizer"
+            "LayoutLMTokenizer",
+            "LayoutLMTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2814,8 +2048,8 @@
     },
     "LayoutLMForSequenceClassification": {
         "tokenizer_classes": [
-            "LayoutLMTokenizerFast",
-            "LayoutLMTokenizer"
+            "LayoutLMTokenizer",
+            "LayoutLMTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2825,8 +2059,8 @@
     },
     "LayoutLMForTokenClassification": {
         "tokenizer_classes": [
-            "LayoutLMTokenizerFast",
-            "LayoutLMTokenizer"
+            "LayoutLMTokenizer",
+            "LayoutLMTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2834,10 +2068,21 @@
             "TFLayoutLMForTokenClassification"
         ]
     },
+    "LayoutLMModel": {
+        "tokenizer_classes": [
+            "LayoutLMTokenizer",
+            "LayoutLMTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "LayoutLMModel",
+            "TFLayoutLMModel"
+        ]
+    },
     "LayoutLMv2ForQuestionAnswering": {
         "tokenizer_classes": [
-            "LayoutLMv2TokenizerFast",
-            "LayoutLMv2Tokenizer"
+            "LayoutLMv2Tokenizer",
+            "LayoutLMv2TokenizerFast"
         ],
         "processor_classes": [
             "LayoutLMv2ImageProcessor"
@@ -2848,8 +2093,8 @@
     },
     "LayoutLMv2ForSequenceClassification": {
         "tokenizer_classes": [
-            "LayoutLMv2TokenizerFast",
-            "LayoutLMv2Tokenizer"
+            "LayoutLMv2Tokenizer",
+            "LayoutLMv2TokenizerFast"
         ],
         "processor_classes": [
             "LayoutLMv2ImageProcessor"
@@ -2860,8 +2105,8 @@
     },
     "LayoutLMv2ForTokenClassification": {
         "tokenizer_classes": [
-            "LayoutLMv2TokenizerFast",
-            "LayoutLMv2Tokenizer"
+            "LayoutLMv2Tokenizer",
+            "LayoutLMv2TokenizerFast"
         ],
         "processor_classes": [
             "LayoutLMv2ImageProcessor"
@@ -2870,10 +2115,22 @@
             "LayoutLMv2ForTokenClassification"
         ]
     },
+    "LayoutLMv2Model": {
+        "tokenizer_classes": [
+            "LayoutLMv2Tokenizer",
+            "LayoutLMv2TokenizerFast"
+        ],
+        "processor_classes": [
+            "LayoutLMv2ImageProcessor"
+        ],
+        "model_classes": [
+            "LayoutLMv2Model"
+        ]
+    },
     "LayoutLMv3ForQuestionAnswering": {
         "tokenizer_classes": [
-            "LayoutLMv3TokenizerFast",
-            "LayoutLMv3Tokenizer"
+            "LayoutLMv3Tokenizer",
+            "LayoutLMv3TokenizerFast"
         ],
         "processor_classes": [
             "LayoutLMv3ImageProcessor"
@@ -2885,8 +2142,8 @@
     },
     "LayoutLMv3ForSequenceClassification": {
         "tokenizer_classes": [
-            "LayoutLMv3TokenizerFast",
-            "LayoutLMv3Tokenizer"
+            "LayoutLMv3Tokenizer",
+            "LayoutLMv3TokenizerFast"
         ],
         "processor_classes": [
             "LayoutLMv3ImageProcessor"
@@ -2898,8 +2155,8 @@
     },
     "LayoutLMv3ForTokenClassification": {
         "tokenizer_classes": [
-            "LayoutLMv3TokenizerFast",
-            "LayoutLMv3Tokenizer"
+            "LayoutLMv3Tokenizer",
+            "LayoutLMv3TokenizerFast"
         ],
         "processor_classes": [
             "LayoutLMv3ImageProcessor"
@@ -2907,6 +2164,19 @@
         "model_classes": [
             "LayoutLMv3ForTokenClassification",
             "TFLayoutLMv3ForTokenClassification"
+        ]
+    },
+    "LayoutLMv3Model": {
+        "tokenizer_classes": [
+            "LayoutLMv3Tokenizer",
+            "LayoutLMv3TokenizerFast"
+        ],
+        "processor_classes": [
+            "LayoutLMv3ImageProcessor"
+        ],
+        "model_classes": [
+            "LayoutLMv3Model",
+            "TFLayoutLMv3Model"
         ]
     },
     "LevitForImageClassification": {
@@ -2927,10 +2197,19 @@
             "LevitForImageClassificationWithTeacher"
         ]
     },
+    "LevitModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "LevitImageProcessor"
+        ],
+        "model_classes": [
+            "LevitModel"
+        ]
+    },
     "LiltForQuestionAnswering": {
         "tokenizer_classes": [
-            "LayoutLMv3TokenizerFast",
-            "LayoutLMv3Tokenizer"
+            "LayoutLMv3Tokenizer",
+            "LayoutLMv3TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2939,8 +2218,8 @@
     },
     "LiltForSequenceClassification": {
         "tokenizer_classes": [
-            "LayoutLMv3TokenizerFast",
-            "LayoutLMv3Tokenizer"
+            "LayoutLMv3Tokenizer",
+            "LayoutLMv3TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2949,12 +2228,22 @@
     },
     "LiltForTokenClassification": {
         "tokenizer_classes": [
-            "LayoutLMv3TokenizerFast",
-            "LayoutLMv3Tokenizer"
+            "LayoutLMv3Tokenizer",
+            "LayoutLMv3TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "LiltForTokenClassification"
+        ]
+    },
+    "LiltModel": {
+        "tokenizer_classes": [
+            "LayoutLMv3Tokenizer",
+            "LayoutLMv3TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "LiltModel"
         ]
     },
     "LongT5ForConditionalGeneration": {
@@ -2966,10 +2255,19 @@
             "LongT5ForConditionalGeneration"
         ]
     },
+    "LongT5Model": {
+        "tokenizer_classes": [
+            "T5TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "LongT5Model"
+        ]
+    },
     "LongformerForMaskedLM": {
         "tokenizer_classes": [
-            "LongformerTokenizerFast",
-            "LongformerTokenizer"
+            "LongformerTokenizer",
+            "LongformerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2979,8 +2277,8 @@
     },
     "LongformerForMultipleChoice": {
         "tokenizer_classes": [
-            "LongformerTokenizerFast",
-            "LongformerTokenizer"
+            "LongformerTokenizer",
+            "LongformerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -2990,8 +2288,8 @@
     },
     "LongformerForQuestionAnswering": {
         "tokenizer_classes": [
-            "LongformerTokenizerFast",
-            "LongformerTokenizer"
+            "LongformerTokenizer",
+            "LongformerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3001,8 +2299,8 @@
     },
     "LongformerForSequenceClassification": {
         "tokenizer_classes": [
-            "LongformerTokenizerFast",
-            "LongformerTokenizer"
+            "LongformerTokenizer",
+            "LongformerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3012,13 +2310,24 @@
     },
     "LongformerForTokenClassification": {
         "tokenizer_classes": [
-            "LongformerTokenizerFast",
-            "LongformerTokenizer"
+            "LongformerTokenizer",
+            "LongformerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "LongformerForTokenClassification",
             "TFLongformerForTokenClassification"
+        ]
+    },
+    "LongformerModel": {
+        "tokenizer_classes": [
+            "LongformerTokenizer",
+            "LongformerTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "LongformerModel",
+            "TFLongformerModel"
         ]
     },
     "LukeForMaskedLM": {
@@ -3066,10 +2375,19 @@
             "LukeForTokenClassification"
         ]
     },
+    "LukeModel": {
+        "tokenizer_classes": [
+            "LukeTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "LukeModel"
+        ]
+    },
     "LxmertForPreTraining": {
         "tokenizer_classes": [
-            "LxmertTokenizerFast",
-            "LxmertTokenizer"
+            "LxmertTokenizer",
+            "LxmertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3079,12 +2397,23 @@
     },
     "LxmertForQuestionAnswering": {
         "tokenizer_classes": [
-            "LxmertTokenizerFast",
-            "LxmertTokenizer"
+            "LxmertTokenizer",
+            "LxmertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "LxmertForQuestionAnswering"
+        ]
+    },
+    "LxmertModel": {
+        "tokenizer_classes": [
+            "LxmertTokenizer",
+            "LxmertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "LxmertModel",
+            "TFLxmertModel"
         ]
     },
     "M2M100ForConditionalGeneration": {
@@ -3096,10 +2425,19 @@
             "M2M100ForConditionalGeneration"
         ]
     },
+    "M2M100Model": {
+        "tokenizer_classes": [
+            "M2M100Tokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "M2M100Model"
+        ]
+    },
     "MBartForCausalLM": {
         "tokenizer_classes": [
-            "MBartTokenizerFast",
-            "MBartTokenizer"
+            "MBartTokenizer",
+            "MBartTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3108,8 +2446,8 @@
     },
     "MBartForConditionalGeneration": {
         "tokenizer_classes": [
-            "MBartTokenizerFast",
-            "MBartTokenizer"
+            "MBartTokenizer",
+            "MBartTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3119,8 +2457,8 @@
     },
     "MBartForQuestionAnswering": {
         "tokenizer_classes": [
-            "MBartTokenizerFast",
-            "MBartTokenizer"
+            "MBartTokenizer",
+            "MBartTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3129,12 +2467,23 @@
     },
     "MBartForSequenceClassification": {
         "tokenizer_classes": [
-            "MBartTokenizerFast",
-            "MBartTokenizer"
+            "MBartTokenizer",
+            "MBartTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "MBartForSequenceClassification"
+        ]
+    },
+    "MBartModel": {
+        "tokenizer_classes": [
+            "MBartTokenizer",
+            "MBartTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "MBartModel",
+            "TFMBartModel"
         ]
     },
     "MCTCTForCTC": {
@@ -3146,10 +2495,19 @@
             "MCTCTForCTC"
         ]
     },
+    "MCTCTModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "MCTCTFeatureExtractor"
+        ],
+        "model_classes": [
+            "MCTCTModel"
+        ]
+    },
     "MPNetForMaskedLM": {
         "tokenizer_classes": [
-            "MPNetTokenizerFast",
-            "MPNetTokenizer"
+            "MPNetTokenizer",
+            "MPNetTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3159,8 +2517,8 @@
     },
     "MPNetForMultipleChoice": {
         "tokenizer_classes": [
-            "MPNetTokenizerFast",
-            "MPNetTokenizer"
+            "MPNetTokenizer",
+            "MPNetTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3170,8 +2528,8 @@
     },
     "MPNetForQuestionAnswering": {
         "tokenizer_classes": [
-            "MPNetTokenizerFast",
-            "MPNetTokenizer"
+            "MPNetTokenizer",
+            "MPNetTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3181,8 +2539,8 @@
     },
     "MPNetForSequenceClassification": {
         "tokenizer_classes": [
-            "MPNetTokenizerFast",
-            "MPNetTokenizer"
+            "MPNetTokenizer",
+            "MPNetTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3192,13 +2550,24 @@
     },
     "MPNetForTokenClassification": {
         "tokenizer_classes": [
-            "MPNetTokenizerFast",
-            "MPNetTokenizer"
+            "MPNetTokenizer",
+            "MPNetTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "MPNetForTokenClassification",
             "TFMPNetForTokenClassification"
+        ]
+    },
+    "MPNetModel": {
+        "tokenizer_classes": [
+            "MPNetTokenizer",
+            "MPNetTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "MPNetModel",
+            "TFMPNetModel"
         ]
     },
     "MarianForCausalLM": {
@@ -3208,10 +2577,30 @@
         "processor_classes": [],
         "model_classes": []
     },
+    "MarianMTModel": {
+        "tokenizer_classes": [
+            "MarianTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "MarianMTModel",
+            "TFMarianMTModel"
+        ]
+    },
+    "MarianModel": {
+        "tokenizer_classes": [
+            "MarianTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "MarianModel",
+            "TFMarianModel"
+        ]
+    },
     "MarkupLMForQuestionAnswering": {
         "tokenizer_classes": [
-            "MarkupLMTokenizerFast",
-            "MarkupLMTokenizer"
+            "MarkupLMTokenizer",
+            "MarkupLMTokenizerFast"
         ],
         "processor_classes": [
             "MarkupLMFeatureExtractor"
@@ -3222,8 +2611,8 @@
     },
     "MarkupLMForSequenceClassification": {
         "tokenizer_classes": [
-            "MarkupLMTokenizerFast",
-            "MarkupLMTokenizer"
+            "MarkupLMTokenizer",
+            "MarkupLMTokenizerFast"
         ],
         "processor_classes": [
             "MarkupLMFeatureExtractor"
@@ -3234,8 +2623,8 @@
     },
     "MarkupLMForTokenClassification": {
         "tokenizer_classes": [
-            "MarkupLMTokenizerFast",
-            "MarkupLMTokenizer"
+            "MarkupLMTokenizer",
+            "MarkupLMTokenizerFast"
         ],
         "processor_classes": [
             "MarkupLMFeatureExtractor"
@@ -3244,19 +2633,40 @@
             "MarkupLMForTokenClassification"
         ]
     },
+    "MarkupLMModel": {
+        "tokenizer_classes": [
+            "MarkupLMTokenizer",
+            "MarkupLMTokenizerFast"
+        ],
+        "processor_classes": [
+            "MarkupLMFeatureExtractor"
+        ],
+        "model_classes": [
+            "MarkupLMModel"
+        ]
+    },
     "MaskFormerForInstanceSegmentation": {
         "tokenizer_classes": [],
         "processor_classes": [
-            "MaskFormerFeatureExtractor"
+            "MaskFormerImageProcessor"
         ],
         "model_classes": [
             "MaskFormerForInstanceSegmentation"
         ]
     },
+    "MaskFormerModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "MaskFormerImageProcessor"
+        ],
+        "model_classes": [
+            "MaskFormerModel"
+        ]
+    },
     "MegatronBertForCausalLM": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3265,8 +2675,8 @@
     },
     "MegatronBertForMaskedLM": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3275,8 +2685,8 @@
     },
     "MegatronBertForMultipleChoice": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3285,8 +2695,8 @@
     },
     "MegatronBertForNextSentencePrediction": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3295,8 +2705,8 @@
     },
     "MegatronBertForPreTraining": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3305,8 +2715,8 @@
     },
     "MegatronBertForQuestionAnswering": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3315,8 +2725,8 @@
     },
     "MegatronBertForSequenceClassification": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3325,18 +2735,28 @@
     },
     "MegatronBertForTokenClassification": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "MegatronBertForTokenClassification"
         ]
     },
+    "MegatronBertModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "MegatronBertModel"
+        ]
+    },
     "MobileBertForMaskedLM": {
         "tokenizer_classes": [
-            "MobileBertTokenizerFast",
-            "MobileBertTokenizer"
+            "MobileBertTokenizer",
+            "MobileBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3346,8 +2766,8 @@
     },
     "MobileBertForMultipleChoice": {
         "tokenizer_classes": [
-            "MobileBertTokenizerFast",
-            "MobileBertTokenizer"
+            "MobileBertTokenizer",
+            "MobileBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3357,8 +2777,8 @@
     },
     "MobileBertForNextSentencePrediction": {
         "tokenizer_classes": [
-            "MobileBertTokenizerFast",
-            "MobileBertTokenizer"
+            "MobileBertTokenizer",
+            "MobileBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3368,8 +2788,8 @@
     },
     "MobileBertForPreTraining": {
         "tokenizer_classes": [
-            "MobileBertTokenizerFast",
-            "MobileBertTokenizer"
+            "MobileBertTokenizer",
+            "MobileBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3379,8 +2799,8 @@
     },
     "MobileBertForQuestionAnswering": {
         "tokenizer_classes": [
-            "MobileBertTokenizerFast",
-            "MobileBertTokenizer"
+            "MobileBertTokenizer",
+            "MobileBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3390,8 +2810,8 @@
     },
     "MobileBertForSequenceClassification": {
         "tokenizer_classes": [
-            "MobileBertTokenizerFast",
-            "MobileBertTokenizer"
+            "MobileBertTokenizer",
+            "MobileBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3401,13 +2821,24 @@
     },
     "MobileBertForTokenClassification": {
         "tokenizer_classes": [
-            "MobileBertTokenizerFast",
-            "MobileBertTokenizer"
+            "MobileBertTokenizer",
+            "MobileBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "MobileBertForTokenClassification",
             "TFMobileBertForTokenClassification"
+        ]
+    },
+    "MobileBertModel": {
+        "tokenizer_classes": [
+            "MobileBertTokenizer",
+            "MobileBertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "MobileBertModel",
+            "TFMobileBertModel"
         ]
     },
     "MobileNetV2ForImageClassification": {
@@ -3426,6 +2857,15 @@
         ],
         "model_classes": [
             "MobileNetV2ForSemanticSegmentation"
+        ]
+    },
+    "MobileNetV2Model": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "MobileNetV2ImageProcessor"
+        ],
+        "model_classes": [
+            "MobileNetV2Model"
         ]
     },
     "MobileViTForImageClassification": {
@@ -3448,10 +2888,20 @@
             "TFMobileViTForSemanticSegmentation"
         ]
     },
+    "MobileViTModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "MobileViTImageProcessor"
+        ],
+        "model_classes": [
+            "MobileViTModel",
+            "TFMobileViTModel"
+        ]
+    },
     "MvpForCausalLM": {
         "tokenizer_classes": [
-            "MvpTokenizerFast",
-            "MvpTokenizer"
+            "MvpTokenizer",
+            "MvpTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3460,8 +2910,8 @@
     },
     "MvpForConditionalGeneration": {
         "tokenizer_classes": [
-            "MvpTokenizerFast",
-            "MvpTokenizer"
+            "MvpTokenizer",
+            "MvpTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3470,8 +2920,8 @@
     },
     "MvpForQuestionAnswering": {
         "tokenizer_classes": [
-            "MvpTokenizerFast",
-            "MvpTokenizer"
+            "MvpTokenizer",
+            "MvpTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3480,18 +2930,28 @@
     },
     "MvpForSequenceClassification": {
         "tokenizer_classes": [
-            "MvpTokenizerFast",
-            "MvpTokenizer"
+            "MvpTokenizer",
+            "MvpTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "MvpForSequenceClassification"
         ]
     },
+    "MvpModel": {
+        "tokenizer_classes": [
+            "MvpTokenizer",
+            "MvpTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "MvpModel"
+        ]
+    },
     "NezhaForMaskedLM": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3500,8 +2960,8 @@
     },
     "NezhaForMultipleChoice": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3510,8 +2970,8 @@
     },
     "NezhaForNextSentencePrediction": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3520,8 +2980,8 @@
     },
     "NezhaForPreTraining": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3530,8 +2990,8 @@
     },
     "NezhaForQuestionAnswering": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3540,8 +3000,8 @@
     },
     "NezhaForSequenceClassification": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3550,12 +3010,22 @@
     },
     "NezhaForTokenClassification": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "NezhaForTokenClassification"
+        ]
+    },
+    "NezhaModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "NezhaModel"
         ]
     },
     "NystromformerForMaskedLM": {
@@ -3603,10 +3073,19 @@
             "NystromformerForTokenClassification"
         ]
     },
+    "NystromformerModel": {
+        "tokenizer_classes": [
+            "AlbertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "NystromformerModel"
+        ]
+    },
     "OPTForCausalLM": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3616,8 +3095,8 @@
     },
     "OPTForQuestionAnswering": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3626,18 +3105,29 @@
     },
     "OPTForSequenceClassification": {
         "tokenizer_classes": [
-            "GPT2TokenizerFast",
-            "GPT2Tokenizer"
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "OPTForSequenceClassification"
         ]
     },
+    "OPTModel": {
+        "tokenizer_classes": [
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "OPTModel",
+            "TFOPTModel"
+        ]
+    },
     "OpenAIGPTForSequenceClassification": {
         "tokenizer_classes": [
-            "OpenAIGPTTokenizerFast",
-            "OpenAIGPTTokenizer"
+            "OpenAIGPTTokenizer",
+            "OpenAIGPTTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3645,16 +3135,50 @@
             "TFOpenAIGPTForSequenceClassification"
         ]
     },
+    "OpenAIGPTLMHeadModel": {
+        "tokenizer_classes": [
+            "OpenAIGPTTokenizer",
+            "OpenAIGPTTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "OpenAIGPTLMHeadModel",
+            "TFOpenAIGPTLMHeadModel"
+        ]
+    },
+    "OpenAIGPTModel": {
+        "tokenizer_classes": [
+            "OpenAIGPTTokenizer",
+            "OpenAIGPTTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "OpenAIGPTModel",
+            "TFOpenAIGPTModel"
+        ]
+    },
     "OwlViTForObjectDetection": {
         "tokenizer_classes": [
-            "CLIPTokenizerFast",
-            "CLIPTokenizer"
+            "CLIPTokenizer",
+            "CLIPTokenizerFast"
         ],
         "processor_classes": [
-            "OwlViTFeatureExtractor"
+            "OwlViTImageProcessor"
         ],
         "model_classes": [
             "OwlViTForObjectDetection"
+        ]
+    },
+    "OwlViTModel": {
+        "tokenizer_classes": [
+            "CLIPTokenizer",
+            "CLIPTokenizerFast"
+        ],
+        "processor_classes": [
+            "OwlViTImageProcessor"
+        ],
+        "model_classes": [
+            "OwlViTModel"
         ]
     },
     "PLBartForCausalLM": {
@@ -3684,6 +3208,15 @@
             "PLBartForSequenceClassification"
         ]
     },
+    "PLBartModel": {
+        "tokenizer_classes": [
+            "PLBartTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "PLBartModel"
+        ]
+    },
     "PegasusForCausalLM": {
         "tokenizer_classes": [
             "PegasusTokenizerFast"
@@ -3703,6 +3236,16 @@
             "TFPegasusForConditionalGeneration"
         ]
     },
+    "PegasusModel": {
+        "tokenizer_classes": [
+            "PegasusTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "PegasusModel",
+            "TFPegasusModel"
+        ]
+    },
     "PegasusXForConditionalGeneration": {
         "tokenizer_classes": [
             "PegasusTokenizerFast"
@@ -3710,6 +3253,15 @@
         "processor_classes": [],
         "model_classes": [
             "PegasusXForConditionalGeneration"
+        ]
+    },
+    "PegasusXModel": {
+        "tokenizer_classes": [
+            "PegasusTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "PegasusXModel"
         ]
     },
     "PerceiverForImageClassificationConvProcessing": {
@@ -3767,6 +3319,17 @@
             "PerceiverForSequenceClassification"
         ]
     },
+    "PerceiverModel": {
+        "tokenizer_classes": [
+            "PerceiverTokenizer"
+        ],
+        "processor_classes": [
+            "PerceiverImageProcessor"
+        ],
+        "model_classes": [
+            "PerceiverModel"
+        ]
+    },
     "PoolFormerForImageClassification": {
         "tokenizer_classes": [],
         "processor_classes": [
@@ -3774,6 +3337,15 @@
         ],
         "model_classes": [
             "PoolFormerForImageClassification"
+        ]
+    },
+    "PoolFormerModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "PoolFormerImageProcessor"
+        ],
+        "model_classes": [
+            "PoolFormerModel"
         ]
     },
     "ProphetNetForCausalLM": {
@@ -3794,10 +3366,19 @@
             "ProphetNetForConditionalGeneration"
         ]
     },
+    "ProphetNetModel": {
+        "tokenizer_classes": [
+            "ProphetNetTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "ProphetNetModel"
+        ]
+    },
     "ReformerForMaskedLM": {
         "tokenizer_classes": [
-            "ReformerTokenizerFast",
-            "ReformerTokenizer"
+            "ReformerTokenizer",
+            "ReformerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3806,8 +3387,8 @@
     },
     "ReformerForQuestionAnswering": {
         "tokenizer_classes": [
-            "ReformerTokenizerFast",
-            "ReformerTokenizer"
+            "ReformerTokenizer",
+            "ReformerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3816,13 +3397,31 @@
     },
     "ReformerForSequenceClassification": {
         "tokenizer_classes": [
-            "ReformerTokenizerFast",
-            "ReformerTokenizer"
+            "ReformerTokenizer",
+            "ReformerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "ReformerForSequenceClassification"
         ]
+    },
+    "ReformerModel": {
+        "tokenizer_classes": [
+            "ReformerTokenizer",
+            "ReformerTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "ReformerModel"
+        ]
+    },
+    "ReformerModelWithLMHead": {
+        "tokenizer_classes": [
+            "ReformerTokenizer",
+            "ReformerTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": []
     },
     "RegNetForImageClassification": {
         "tokenizer_classes": [],
@@ -3832,6 +3431,16 @@
         "model_classes": [
             "RegNetForImageClassification",
             "TFRegNetForImageClassification"
+        ]
+    },
+    "RegNetModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ConvNextImageProcessor"
+        ],
+        "model_classes": [
+            "RegNetModel",
+            "TFRegNetModel"
         ]
     },
     "RemBertForCausalLM": {
@@ -3894,6 +3503,16 @@
             "TFRemBertForTokenClassification"
         ]
     },
+    "RemBertModel": {
+        "tokenizer_classes": [
+            "RemBertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "RemBertModel",
+            "TFRemBertModel"
+        ]
+    },
     "ResNetForImageClassification": {
         "tokenizer_classes": [],
         "processor_classes": [
@@ -3902,6 +3521,16 @@
         "model_classes": [
             "ResNetForImageClassification",
             "TFResNetForImageClassification"
+        ]
+    },
+    "ResNetModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ConvNextImageProcessor"
+        ],
+        "model_classes": [
+            "ResNetModel",
+            "TFResNetModel"
         ]
     },
     "RoCBertForCausalLM": {
@@ -3967,10 +3596,19 @@
             "RoCBertForTokenClassification"
         ]
     },
+    "RoCBertModel": {
+        "tokenizer_classes": [
+            "RoCBertTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "RoCBertModel"
+        ]
+    },
     "RoFormerForCausalLM": {
         "tokenizer_classes": [
-            "RoFormerTokenizerFast",
-            "RoFormerTokenizer"
+            "RoFormerTokenizer",
+            "RoFormerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3980,8 +3618,8 @@
     },
     "RoFormerForMaskedLM": {
         "tokenizer_classes": [
-            "RoFormerTokenizerFast",
-            "RoFormerTokenizer"
+            "RoFormerTokenizer",
+            "RoFormerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -3991,8 +3629,8 @@
     },
     "RoFormerForMultipleChoice": {
         "tokenizer_classes": [
-            "RoFormerTokenizerFast",
-            "RoFormerTokenizer"
+            "RoFormerTokenizer",
+            "RoFormerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4002,8 +3640,8 @@
     },
     "RoFormerForQuestionAnswering": {
         "tokenizer_classes": [
-            "RoFormerTokenizerFast",
-            "RoFormerTokenizer"
+            "RoFormerTokenizer",
+            "RoFormerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4013,8 +3651,8 @@
     },
     "RoFormerForSequenceClassification": {
         "tokenizer_classes": [
-            "RoFormerTokenizerFast",
-            "RoFormerTokenizer"
+            "RoFormerTokenizer",
+            "RoFormerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4024,8 +3662,8 @@
     },
     "RoFormerForTokenClassification": {
         "tokenizer_classes": [
-            "RoFormerTokenizerFast",
-            "RoFormerTokenizer"
+            "RoFormerTokenizer",
+            "RoFormerTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4033,10 +3671,21 @@
             "TFRoFormerForTokenClassification"
         ]
     },
+    "RoFormerModel": {
+        "tokenizer_classes": [
+            "RoFormerTokenizer",
+            "RoFormerTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "RoFormerModel",
+            "TFRoFormerModel"
+        ]
+    },
     "RobertaForCausalLM": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4046,8 +3695,8 @@
     },
     "RobertaForMaskedLM": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4057,8 +3706,8 @@
     },
     "RobertaForMultipleChoice": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4068,8 +3717,8 @@
     },
     "RobertaForQuestionAnswering": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4079,8 +3728,8 @@
     },
     "RobertaForSequenceClassification": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4090,13 +3739,24 @@
     },
     "RobertaForTokenClassification": {
         "tokenizer_classes": [
-            "RobertaTokenizerFast",
-            "RobertaTokenizer"
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "RobertaForTokenClassification",
             "TFRobertaForTokenClassification"
+        ]
+    },
+    "RobertaModel": {
+        "tokenizer_classes": [
+            "RobertaTokenizer",
+            "RobertaTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "RobertaModel",
+            "TFRobertaModel"
         ]
     },
     "SEWDForCTC": {
@@ -4121,6 +3781,17 @@
             "SEWDForSequenceClassification"
         ]
     },
+    "SEWDModel": {
+        "tokenizer_classes": [
+            "Wav2Vec2CTCTokenizer"
+        ],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "SEWDModel"
+        ]
+    },
     "SEWForCTC": {
         "tokenizer_classes": [
             "Wav2Vec2CTCTokenizer"
@@ -4143,6 +3814,17 @@
             "SEWForSequenceClassification"
         ]
     },
+    "SEWModel": {
+        "tokenizer_classes": [
+            "Wav2Vec2CTCTokenizer"
+        ],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "SEWModel"
+        ]
+    },
     "SegformerForImageClassification": {
         "tokenizer_classes": [],
         "processor_classes": [
@@ -4163,6 +3845,16 @@
             "TFSegformerForSemanticSegmentation"
         ]
     },
+    "SegformerModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "SegformerImageProcessor"
+        ],
+        "model_classes": [
+            "SegformerModel",
+            "TFSegformerModel"
+        ]
+    },
     "Speech2TextForConditionalGeneration": {
         "tokenizer_classes": [
             "Speech2TextTokenizer"
@@ -4175,24 +3867,49 @@
             "TFSpeech2TextForConditionalGeneration"
         ]
     },
+    "Speech2TextModel": {
+        "tokenizer_classes": [
+            "Speech2TextTokenizer"
+        ],
+        "processor_classes": [
+            "Speech2TextFeatureExtractor"
+        ],
+        "model_classes": [
+            "Speech2TextModel",
+            "TFSpeech2TextModel"
+        ]
+    },
     "SplinterForPreTraining": {
-        "tokenizer_classes": [],
+        "tokenizer_classes": [
+            "SplinterTokenizer"
+        ],
         "processor_classes": [],
         "model_classes": [
             "SplinterForPreTraining"
         ]
     },
     "SplinterForQuestionAnswering": {
-        "tokenizer_classes": [],
+        "tokenizer_classes": [
+            "SplinterTokenizer"
+        ],
         "processor_classes": [],
         "model_classes": [
             "SplinterForQuestionAnswering"
         ]
     },
+    "SplinterModel": {
+        "tokenizer_classes": [
+            "SplinterTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "SplinterModel"
+        ]
+    },
     "SqueezeBertForMaskedLM": {
         "tokenizer_classes": [
-            "SqueezeBertTokenizerFast",
-            "SqueezeBertTokenizer"
+            "SqueezeBertTokenizer",
+            "SqueezeBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4201,8 +3918,8 @@
     },
     "SqueezeBertForMultipleChoice": {
         "tokenizer_classes": [
-            "SqueezeBertTokenizerFast",
-            "SqueezeBertTokenizer"
+            "SqueezeBertTokenizer",
+            "SqueezeBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4211,8 +3928,8 @@
     },
     "SqueezeBertForQuestionAnswering": {
         "tokenizer_classes": [
-            "SqueezeBertTokenizerFast",
-            "SqueezeBertTokenizer"
+            "SqueezeBertTokenizer",
+            "SqueezeBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4221,8 +3938,8 @@
     },
     "SqueezeBertForSequenceClassification": {
         "tokenizer_classes": [
-            "SqueezeBertTokenizerFast",
-            "SqueezeBertTokenizer"
+            "SqueezeBertTokenizer",
+            "SqueezeBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
@@ -4231,12 +3948,22 @@
     },
     "SqueezeBertForTokenClassification": {
         "tokenizer_classes": [
-            "SqueezeBertTokenizerFast",
-            "SqueezeBertTokenizer"
+            "SqueezeBertTokenizer",
+            "SqueezeBertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "SqueezeBertForTokenClassification"
+        ]
+    },
+    "SqueezeBertModel": {
+        "tokenizer_classes": [
+            "SqueezeBertTokenizer",
+            "SqueezeBertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "SqueezeBertModel"
         ]
     },
     "SwinForImageClassification": {
@@ -4259,6 +3986,16 @@
             "TFSwinForMaskedImageModeling"
         ]
     },
+    "SwinModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ViTImageProcessor"
+        ],
+        "model_classes": [
+            "SwinModel",
+            "TFSwinModel"
+        ]
+    },
     "Swinv2ForImageClassification": {
         "tokenizer_classes": [],
         "processor_classes": [
@@ -4277,6 +4014,15 @@
             "Swinv2ForMaskedImageModeling"
         ]
     },
+    "Swinv2Model": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ViTImageProcessor"
+        ],
+        "model_classes": [
+            "Swinv2Model"
+        ]
+    },
     "SwitchTransformersForConditionalGeneration": {
         "tokenizer_classes": [
             "T5TokenizerFast"
@@ -4284,6 +4030,15 @@
         "processor_classes": [],
         "model_classes": [
             "SwitchTransformersForConditionalGeneration"
+        ]
+    },
+    "SwitchTransformersModel": {
+        "tokenizer_classes": [
+            "T5TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "SwitchTransformersModel"
         ]
     },
     "T5ForConditionalGeneration": {
@@ -4296,13 +4051,32 @@
             "TFT5ForConditionalGeneration"
         ]
     },
+    "T5Model": {
+        "tokenizer_classes": [
+            "T5TokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "T5Model",
+            "TFT5Model"
+        ]
+    },
     "TableTransformerForObjectDetection": {
         "tokenizer_classes": [],
         "processor_classes": [
-            "DetrFeatureExtractor"
+            "DetrImageProcessor"
         ],
         "model_classes": [
             "TableTransformerForObjectDetection"
+        ]
+    },
+    "TableTransformerModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "DetrImageProcessor"
+        ],
+        "model_classes": [
+            "TableTransformerModel"
         ]
     },
     "TapasForMaskedLM": {
@@ -4311,8 +4085,8 @@
         ],
         "processor_classes": [],
         "model_classes": [
-            "TapasForMaskedLM",
-            "TFTapasForMaskedLM"
+            "TFTapasForMaskedLM",
+            "TapasForMaskedLM"
         ]
     },
     "TapasForQuestionAnswering": {
@@ -4321,8 +4095,8 @@
         ],
         "processor_classes": [],
         "model_classes": [
-            "TapasForQuestionAnswering",
-            "TFTapasForQuestionAnswering"
+            "TFTapasForQuestionAnswering",
+            "TapasForQuestionAnswering"
         ]
     },
     "TapasForSequenceClassification": {
@@ -4331,8 +4105,18 @@
         ],
         "processor_classes": [],
         "model_classes": [
-            "TapasForSequenceClassification",
-            "TFTapasForSequenceClassification"
+            "TFTapasForSequenceClassification",
+            "TapasForSequenceClassification"
+        ]
+    },
+    "TapasModel": {
+        "tokenizer_classes": [
+            "TapasTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "TFTapasModel",
+            "TapasModel"
         ]
     },
     "TransfoXLForSequenceClassification": {
@@ -4341,8 +4125,28 @@
         ],
         "processor_classes": [],
         "model_classes": [
-            "TransfoXLForSequenceClassification",
-            "TFTransfoXLForSequenceClassification"
+            "TFTransfoXLForSequenceClassification",
+            "TransfoXLForSequenceClassification"
+        ]
+    },
+    "TransfoXLLMHeadModel": {
+        "tokenizer_classes": [
+            "TransfoXLTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "TFTransfoXLLMHeadModel",
+            "TransfoXLLMHeadModel"
+        ]
+    },
+    "TransfoXLModel": {
+        "tokenizer_classes": [
+            "TransfoXLTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "TFTransfoXLModel",
+            "TransfoXLModel"
         ]
     },
     "UniSpeechForCTC": {
@@ -4376,6 +4180,17 @@
         ],
         "model_classes": [
             "UniSpeechForSequenceClassification"
+        ]
+    },
+    "UniSpeechModel": {
+        "tokenizer_classes": [
+            "Wav2Vec2CTCTokenizer"
+        ],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "UniSpeechModel"
         ]
     },
     "UniSpeechSatForCTC": {
@@ -4422,6 +4237,17 @@
             "UniSpeechSatForXVector"
         ]
     },
+    "UniSpeechSatModel": {
+        "tokenizer_classes": [
+            "Wav2Vec2CTCTokenizer"
+        ],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "UniSpeechSatModel"
+        ]
+    },
     "VanForImageClassification": {
         "tokenizer_classes": [],
         "processor_classes": [
@@ -4431,14 +4257,23 @@
             "VanForImageClassification"
         ]
     },
+    "VanModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ConvNextImageProcessor"
+        ],
+        "model_classes": [
+            "VanModel"
+        ]
+    },
     "ViTForImageClassification": {
         "tokenizer_classes": [],
         "processor_classes": [
             "ViTImageProcessor"
         ],
         "model_classes": [
-            "ViTForImageClassification",
-            "TFViTForImageClassification"
+            "TFViTForImageClassification",
+            "ViTForImageClassification"
         ]
     },
     "ViTForMaskedImageModeling": {
@@ -4456,8 +4291,18 @@
             "ViTImageProcessor"
         ],
         "model_classes": [
-            "ViTMAEForPreTraining",
-            "TFViTMAEForPreTraining"
+            "TFViTMAEForPreTraining",
+            "ViTMAEForPreTraining"
+        ]
+    },
+    "ViTMAEModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ViTImageProcessor"
+        ],
+        "model_classes": [
+            "TFViTMAEModel",
+            "ViTMAEModel"
         ]
     },
     "ViTMSNForImageClassification": {
@@ -4467,6 +4312,25 @@
         ],
         "model_classes": [
             "ViTMSNForImageClassification"
+        ]
+    },
+    "ViTMSNModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ViTImageProcessor"
+        ],
+        "model_classes": [
+            "ViTMSNModel"
+        ]
+    },
+    "ViTModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "ViTImageProcessor"
+        ],
+        "model_classes": [
+            "TFViTModel",
+            "ViTModel"
         ]
     },
     "VideoMAEForPreTraining": {
@@ -4487,10 +4351,19 @@
             "VideoMAEForVideoClassification"
         ]
     },
+    "VideoMAEModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "VideoMAEImageProcessor"
+        ],
+        "model_classes": [
+            "VideoMAEModel"
+        ]
+    },
     "ViltForQuestionAnswering": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [
             "ViltImageProcessor"
@@ -4499,14 +4372,36 @@
             "ViltForQuestionAnswering"
         ]
     },
+    "ViltModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [
+            "ViltImageProcessor"
+        ],
+        "model_classes": [
+            "ViltModel"
+        ]
+    },
     "VisualBertForPreTraining": {
         "tokenizer_classes": [
-            "BertTokenizerFast",
-            "BertTokenizer"
+            "BertTokenizer",
+            "BertTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
             "VisualBertForPreTraining"
+        ]
+    },
+    "VisualBertModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "VisualBertModel"
         ]
     },
     "Wav2Vec2ConformerForCTC": {
@@ -4551,6 +4446,17 @@
         ],
         "model_classes": [
             "Wav2Vec2ConformerForXVector"
+        ]
+    },
+    "Wav2Vec2ConformerModel": {
+        "tokenizer_classes": [
+            "Wav2Vec2CTCTokenizer"
+        ],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "Wav2Vec2ConformerModel"
         ]
     },
     "Wav2Vec2ForCTC": {
@@ -4608,6 +4514,18 @@
             "Wav2Vec2ForXVector"
         ]
     },
+    "Wav2Vec2Model": {
+        "tokenizer_classes": [
+            "Wav2Vec2CTCTokenizer"
+        ],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "TFWav2Vec2Model",
+            "Wav2Vec2Model"
+        ]
+    },
     "WavLMForCTC": {
         "tokenizer_classes": [
             "Wav2Vec2CTCTokenizer"
@@ -4641,16 +4559,53 @@
             "WavLMForXVector"
         ]
     },
+    "WavLMModel": {
+        "tokenizer_classes": [
+            "Wav2Vec2CTCTokenizer"
+        ],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "WavLMModel"
+        ]
+    },
     "WhisperForConditionalGeneration": {
         "tokenizer_classes": [
-            "WhisperTokenizer"
+            "WhisperTokenizer",
+            "WhisperTokenizerFast"
         ],
         "processor_classes": [
             "WhisperFeatureExtractor"
         ],
         "model_classes": [
-            "WhisperForConditionalGeneration",
-            "TFWhisperForConditionalGeneration"
+            "TFWhisperForConditionalGeneration",
+            "WhisperForConditionalGeneration"
+        ]
+    },
+    "WhisperModel": {
+        "tokenizer_classes": [
+            "WhisperTokenizer",
+            "WhisperTokenizerFast"
+        ],
+        "processor_classes": [
+            "WhisperFeatureExtractor"
+        ],
+        "model_classes": [
+            "TFWhisperModel",
+            "WhisperModel"
+        ]
+    },
+    "XCLIPModel": {
+        "tokenizer_classes": [
+            "CLIPTokenizer",
+            "CLIPTokenizerFast"
+        ],
+        "processor_classes": [
+            "VideoMAEImageProcessor"
+        ],
+        "model_classes": [
+            "XCLIPModel"
         ]
     },
     "XGLMForCausalLM": {
@@ -4659,8 +4614,18 @@
         ],
         "processor_classes": [],
         "model_classes": [
-            "XGLMForCausalLM",
-            "TFXGLMForCausalLM"
+            "TFXGLMForCausalLM",
+            "XGLMForCausalLM"
+        ]
+    },
+    "XGLMModel": {
+        "tokenizer_classes": [
+            "XGLMTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "TFXGLMModel",
+            "XGLMModel"
         ]
     },
     "XLMForMultipleChoice": {
@@ -4669,8 +4634,8 @@
         ],
         "processor_classes": [],
         "model_classes": [
-            "XLMForMultipleChoice",
-            "TFXLMForMultipleChoice"
+            "TFXLMForMultipleChoice",
+            "XLMForMultipleChoice"
         ]
     },
     "XLMForQuestionAnsweringSimple": {
@@ -4679,8 +4644,8 @@
         ],
         "processor_classes": [],
         "model_classes": [
-            "XLMForQuestionAnsweringSimple",
-            "TFXLMForQuestionAnsweringSimple"
+            "TFXLMForQuestionAnsweringSimple",
+            "XLMForQuestionAnsweringSimple"
         ]
     },
     "XLMForSequenceClassification": {
@@ -4689,8 +4654,8 @@
         ],
         "processor_classes": [],
         "model_classes": [
-            "XLMForSequenceClassification",
-            "TFXLMForSequenceClassification"
+            "TFXLMForSequenceClassification",
+            "XLMForSequenceClassification"
         ]
     },
     "XLMForTokenClassification": {
@@ -4699,8 +4664,18 @@
         ],
         "processor_classes": [],
         "model_classes": [
-            "XLMForTokenClassification",
-            "TFXLMForTokenClassification"
+            "TFXLMForTokenClassification",
+            "XLMForTokenClassification"
+        ]
+    },
+    "XLMModel": {
+        "tokenizer_classes": [
+            "XLMTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "TFXLMModel",
+            "XLMModel"
         ]
     },
     "XLMRobertaXLForCausalLM": {
@@ -4757,57 +4732,107 @@
             "XLMRobertaXLForTokenClassification"
         ]
     },
-    "XLNetForMultipleChoice": {
+    "XLMRobertaXLModel": {
         "tokenizer_classes": [
-            "XLNetTokenizerFast",
-            "XLNetTokenizer"
+            "XLMRobertaTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
-            "XLNetForMultipleChoice",
-            "TFXLNetForMultipleChoice"
+            "XLMRobertaXLModel"
+        ]
+    },
+    "XLMWithLMHeadModel": {
+        "tokenizer_classes": [
+            "XLMTokenizer"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "TFXLMWithLMHeadModel",
+            "XLMWithLMHeadModel"
+        ]
+    },
+    "XLNetForMultipleChoice": {
+        "tokenizer_classes": [
+            "XLNetTokenizer",
+            "XLNetTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "TFXLNetForMultipleChoice",
+            "XLNetForMultipleChoice"
         ]
     },
     "XLNetForQuestionAnsweringSimple": {
         "tokenizer_classes": [
-            "XLNetTokenizerFast",
-            "XLNetTokenizer"
+            "XLNetTokenizer",
+            "XLNetTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
-            "XLNetForQuestionAnsweringSimple",
-            "TFXLNetForQuestionAnsweringSimple"
+            "TFXLNetForQuestionAnsweringSimple",
+            "XLNetForQuestionAnsweringSimple"
         ]
     },
     "XLNetForSequenceClassification": {
         "tokenizer_classes": [
-            "XLNetTokenizerFast",
-            "XLNetTokenizer"
+            "XLNetTokenizer",
+            "XLNetTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
-            "XLNetForSequenceClassification",
-            "TFXLNetForSequenceClassification"
+            "TFXLNetForSequenceClassification",
+            "XLNetForSequenceClassification"
         ]
     },
     "XLNetForTokenClassification": {
         "tokenizer_classes": [
-            "XLNetTokenizerFast",
-            "XLNetTokenizer"
+            "XLNetTokenizer",
+            "XLNetTokenizerFast"
         ],
         "processor_classes": [],
         "model_classes": [
-            "XLNetForTokenClassification",
-            "TFXLNetForTokenClassification"
+            "TFXLNetForTokenClassification",
+            "XLNetForTokenClassification"
+        ]
+    },
+    "XLNetLMHeadModel": {
+        "tokenizer_classes": [
+            "XLNetTokenizer",
+            "XLNetTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "TFXLNetLMHeadModel",
+            "XLNetLMHeadModel"
+        ]
+    },
+    "XLNetModel": {
+        "tokenizer_classes": [
+            "XLNetTokenizer",
+            "XLNetTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "TFXLNetModel",
+            "XLNetModel"
         ]
     },
     "YolosForObjectDetection": {
         "tokenizer_classes": [],
         "processor_classes": [
-            "YolosFeatureExtractor"
+            "YolosImageProcessor"
         ],
         "model_classes": [
             "YolosForObjectDetection"
+        ]
+    },
+    "YolosModel": {
+        "tokenizer_classes": [],
+        "processor_classes": [
+            "YolosImageProcessor"
+        ],
+        "model_classes": [
+            "YolosModel"
         ]
     },
     "YosoForMaskedLM": {
@@ -4853,6 +4878,15 @@
         "processor_classes": [],
         "model_classes": [
             "YosoForTokenClassification"
+        ]
+    },
+    "YosoModel": {
+        "tokenizer_classes": [
+            "AlbertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "YosoModel"
         ]
     }
 }
