@@ -57,10 +57,11 @@ def get_tiny_model_summary():
         model = model.replace("tiny-random-", "")
         if not model[0].isupper():
             continue
-        if model not in model_names or model not in special_models:
+        if model not in model_names and model not in special_models:
             continue
         _models.add(model)
 
+    models = sorted(_models)
     # All tiny model names on Hub
     summary = {}
     for model in models:
@@ -116,8 +117,6 @@ def get_tiny_model_summary():
 
 
 if __name__ == "__main__":
-    get_tiny_model_summary()
-    exit(0)
     # All model names defined in auto mappings
     model_names = set(get_all_model_names())
 
