@@ -1285,6 +1285,17 @@
             "TFElectraModel"
         ]
     },
+    "EncoderDecoderModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [],
+        "model_classes": [
+            "EncoderDecoderModel",
+            "TFEncoderDecoderModel"
+        ]
+    },
     "ErnieForCausalLM": {
         "tokenizer_classes": [
             "BertTokenizer",
@@ -3879,6 +3890,18 @@
             "TFSpeech2TextModel"
         ]
     },
+    "SpeechEncoderDecoderModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [
+            "Wav2Vec2FeatureExtractor"
+        ],
+        "model_classes": [
+            "SpeechEncoderDecoderModel"
+        ]
+    },
     "SplinterForPreTraining": {
         "tokenizer_classes": [
             "SplinterTokenizer"
@@ -4382,6 +4405,31 @@
         ],
         "model_classes": [
             "ViltModel"
+        ]
+    },
+    "VisionEncoderDecoderModel": {
+        "tokenizer_classes": [
+            "GPT2Tokenizer",
+            "GPT2TokenizerFast"
+        ],
+        "processor_classes": [
+            "ViTImageProcessor"
+        ],
+        "model_classes": [
+            "TFVisionEncoderDecoderModel",
+            "VisionEncoderDecoderModel"
+        ]
+    },
+    "VisionTextDualEncoderModel": {
+        "tokenizer_classes": [
+            "BertTokenizer",
+            "BertTokenizerFast"
+        ],
+        "processor_classes": [
+            "ViTImageProcessor"
+        ],
+        "model_classes": [
+            "VisionTextDualEncoderModel"
         ]
     },
     "VisualBertForPreTraining": {
