@@ -153,3 +153,20 @@ if __name__ == "__main__":
         upload,
         organization,
     )
+
+    with open("../tiny_model_summary.json") as fp:
+        new_data = json.load(fp)
+    with open("../tests/utils/tiny_model_summary.json") as fp:
+        data = json.load(fp)
+    for k, v in new_data.items():
+        if k not in data:
+            data[k] = v
+        else:
+            for key in ["tokenizer_classes", "processor_classes", "model_classes"]:
+                data[k][key].extend(v[key])
+    data = {
+        k: {x: sorted(y) for x, y in data[k].items()} for k in sorted(data.keys())
+    }
+
+    with open("../updated_tiny_model_summary.json", "w") as fp:
+        json.dump(data, fp, indent=4, ensure_ascii=False)
