@@ -91,7 +91,16 @@ def get_tiny_model_summary_from_hub():
     for model in models:
         repo_id = f"hf-internal-testing/tiny-random-{model}"
         model = model.split("-")[0]
-        content = {"tokenizer_classes": set(), "processor_classes": set(), "model_classes": set()}
+        try:
+            repo_info = hf_api.repo_info(repo_id)
+            content = {
+                "tokenizer_classes": set(),
+                "processor_classes": set(),
+                "model_classes": set(),
+                "sha": repo_info.sha,
+            }
+        except:
+            continue
         try:
             time.sleep(1)
             tokenizer_fast = AutoTokenizer.from_pretrained(repo_id)
@@ -131,6 +140,7 @@ def get_tiny_model_summary_from_hub():
             content["model_classes"].add(m.__class__.__name__)
         except:
             pass
+
         content["tokenizer_classes"] = sorted(content["tokenizer_classes"])
         content["processor_classes"] = sorted(content["processor_classes"])
         content["model_classes"] = sorted(content["model_classes"])
