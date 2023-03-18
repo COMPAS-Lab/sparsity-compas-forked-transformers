@@ -210,14 +210,14 @@ class PipelineTesterMixin:
         tokenizer = None
         if tokenizer_name is not None:
             tokenizer_class = getattr(transformers_module, tokenizer_name)
-            tokenizer = tokenizer_class.from_pretrained(repo_id, _commit_hash=sha)
+            tokenizer = tokenizer_class.from_pretrained(repo_id, _commit_hash=commit)
 
         processor = None
         if processor_name is not None:
             processor_class = getattr(transformers_module, processor_name)
             # If the required packages (like `Pillow` or `torchaudio`) are not installed, this will fail.
             try:
-                processor = processor_class.from_pretrained(repo_id, _commit_hash=sha)
+                processor = processor_class.from_pretrained(repo_id, _commit_hash=commit)
             except Exception:
                 self.skipTest(
                     f"{self.__class__.__name__}::test_pipeline_{task.replace('-', '_')} is skipped: Could not load the "
@@ -233,7 +233,7 @@ class PipelineTesterMixin:
 
         # TODO: We should check if a model file is on the Hub repo. instead.
         try:
-            model = model_architecture.from_pretrained(repo_id, _commit_hash=sha)
+            model = model_architecture.from_pretrained(repo_id, _commit_hash=commit)
         except Exception:
             self.skipTest(
                 f"{self.__class__.__name__}::test_pipeline_{task.replace('-', '_')} is skipped: Could not find or load "
