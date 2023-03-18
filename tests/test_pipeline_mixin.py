@@ -140,18 +140,20 @@ class PipelineTesterMixin:
 
             tokenizer_names = []
             processor_names = []
+            commit = None
             if model_arch_name in tiny_model_summary:
                 tokenizer_names = tiny_model_summary[model_arch_name]["tokenizer_classes"]
                 processor_names = tiny_model_summary[model_arch_name]["processor_classes"]
+                commit = tiny_model_summary[model_arch_name]["sha"]
             # Adding `None` (if empty) so we can generate tests
             tokenizer_names = [None] if len(tokenizer_names) == 0 else tokenizer_names
             processor_names = [None] if len(processor_names) == 0 else processor_names
 
             repo_name = f"tiny-random-{model_arch_name}"
 
-            self.run_model_pipeline_tests(task, repo_name, model_architecture, tokenizer_names, processor_names)
+            self.run_model_pipeline_tests(task, repo_name, model_architecture, tokenizer_names, processor_names, commit)
 
-    def run_model_pipeline_tests(self, task, repo_name, model_architecture, tokenizer_names, processor_names):
+    def run_model_pipeline_tests(self, task, repo_name, model_architecture, tokenizer_names, processor_names, commit):
         """Run pipeline tests for a specific `task` with the give model class and tokenizer/processor class names
 
         Args:
@@ -184,9 +186,9 @@ class PipelineTesterMixin:
                         f"currently known to fail for: model `{model_architecture.__name__}` | tokenizer "
                         f"`{tokenizer_name}` | processor `{processor_name}`."
                     )
-                self.run_pipeline_test(task, repo_name, model_architecture, tokenizer_name, processor_name)
+                self.run_pipeline_test(task, repo_name, model_architecture, tokenizer_name, processor_name, commit)
 
-    def run_pipeline_test(self, task, repo_name, model_architecture, tokenizer_name, processor_name):
+    def run_pipeline_test(self, task, repo_name, model_architecture, tokenizer_name, processor_name, commit):
         """Run pipeline tests for a specific `task` with the give model class and tokenizer/processor class name
 
         The model will be loaded from a model repository on the Hub.
@@ -208,14 +210,14 @@ class PipelineTesterMixin:
         tokenizer = None
         if tokenizer_name is not None:
             tokenizer_class = getattr(transformers_module, tokenizer_name)
-            tokenizer = tokenizer_class.from_pretrained(repo_id)
+            tokenizer = tokenizer_class.from_pretrained(repo_id, _commit_hash=sha)
 
         processor = None
         if processor_name is not None:
             processor_class = getattr(transformers_module, processor_name)
             # If the required packages (like `Pillow` or `torchaudio`) are not installed, this will fail.
             try:
-                processor = processor_class.from_pretrained(repo_id)
+                processor = processor_class.from_pretrained(repo_id, _commit_hash=sha)
             except Exception:
                 self.skipTest(
                     f"{self.__class__.__name__}::test_pipeline_{task.replace('-', '_')} is skipped: Could not load the "
@@ -231,7 +233,7 @@ class PipelineTesterMixin:
 
         # TODO: We should check if a model file is on the Hub repo. instead.
         try:
-            model = model_architecture.from_pretrained(repo_id)
+            model = model_architecture.from_pretrained(repo_id, _commit_hash=sha)
         except Exception:
             self.skipTest(
                 f"{self.__class__.__name__}::test_pipeline_{task.replace('-', '_')} is skipped: Could not find or load "
