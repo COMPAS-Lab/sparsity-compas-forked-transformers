@@ -3,6 +3,7 @@ import transformers
 from transformers import AutoTokenizer, AutoImageProcessor, AutoFeatureExtractor, AutoProcessor
 import json
 import time
+from transformers.image_processing_utils import BaseImageProcessor
 
 model_names = set()
 # Each auto modeling files contains multiple mappings. Let's get them in a dynamic way.
@@ -42,7 +43,7 @@ models = sorted(_models)
 sorted(models)
 
 summary = {}
-for model in models[:3]:
+for model in models[:]:
     content = {"tokenizer_classes": set(), "processor_classes": set(), "model_classes": set()}
     repo_id = f"hf-internal-testing/tiny-random-{model}"
     try:
@@ -66,7 +67,8 @@ for model in models[:3]:
     try:
         time.sleep(1)
         feat_p = AutoFeatureExtractor.from_pretrained(repo_id)
-        content["processor_classes"].add(feat_p.__class__.__name__)
+        if not isinstance(feat_p, BaseImageProcessor):
+            content["processor_classes"].add(feat_p.__class__.__name__)
     except:
         pass
     # try:
