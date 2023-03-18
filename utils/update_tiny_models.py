@@ -28,11 +28,32 @@ def get_all_model_names():
                     elif isinstance(v, str):
                         model_names.add(v)
 
-    model_names = sorted(model_names)
-    return model_names
+    return sorted(model_names)
 
 
-def get_tiny_model_summary():
+def get_tiny_model_names():
+    # All model names defined in auto mappings
+    model_names = set(get_all_model_names())
+
+    with open("tests/utils/tiny_model_summary.json") as fp:
+        tiny_model_info = json.load(fp)
+    tiny_models_names = set()
+    for model_base_name in tiny_model_info:
+        tiny_models_names.update(tiny_model_info[model_base_name]["model_classes"])
+
+    # Remove a tiny model name if one of its framework implementation hasn't yet a tiny version on the Hub.
+    not_on_hub = model_names.difference(tiny_models_names)
+    existing_model_ = set()
+    for model_name in copy.copy(tiny_models_names):
+        if not model_name.startswith("TF") and f"TF{model_name}" in not_on_hub:
+            tiny_models_names.remove(model_name)
+        elif model_name.startswith("TF") and model_name[2:] in not_on_hub:
+            tiny_models_names.remove(model_name)
+
+    return sorted(tiny_models_names)
+
+
+def get_tiny_model_summary_from_hub():
 
     special_models = [
         "EncoderDecoderModel-bert-bert",
@@ -116,43 +137,7 @@ def get_tiny_model_summary():
             json.dump(summary, fp, ensure_ascii=False, indent=4)
 
 
-if __name__ == "__main__":
-    # All model names defined in auto mappings
-    model_names = set(get_all_model_names())
-
-    with open("tests/utils/tiny_model_summary.json") as fp:
-        tiny_model_info = json.load(fp)
-    tiny_models_names = set()
-    for model_base_name in tiny_model_info:
-        tiny_models_names.update(tiny_model_info[model_base_name]["model_classes"])
-
-    # Remove a tiny model name if one of its framework implementation hasn't yet a tiny version on the Hub.
-    not_on_hub = model_names.difference(tiny_models_names)
-    existing_model_ = set()
-    for model_name in copy.copy(tiny_models_names):
-        if not model_name.startswith("TF") and f"TF{model_name}" in not_on_hub:
-            tiny_models_names.remove(model_name)
-        elif model_name.startswith("TF") and model_name[2:] in not_on_hub:
-            tiny_models_names.remove(model_name)
-    tiny_models_names = sorted(tiny_models_names)
-
-    output_path = "tiny_models"
-    all = True
-    model_types = None
-    models_to_skip = tiny_models_names
-    no_check = True
-    upload = False
-    organization = "hf-internal-testing"
-
-    create_tiny_models(
-        output_path,
-        all,
-        model_types,
-        models_to_skip,
-        no_check,
-        upload,
-        organization,
-    )
+def update_tiny_model_summary_file():
 
     with open("./tiny_model_summary.json") as fp:
         new_data = json.load(fp)
@@ -170,3 +155,26 @@ if __name__ == "__main__":
 
     with open("./updated_tiny_model_summary.json", "w") as fp:
         json.dump(data, fp, indent=4, ensure_ascii=False)
+
+
+if __name__ == "__main__":
+
+    output_path = "tiny_models"
+    all = True
+    model_types = None
+    models_to_skip = get_tiny_model_names()
+    no_check = True
+    upload = False
+    organization = "hf-internal-testing"
+
+    create_tiny_models(
+        output_path,
+        all,
+        model_types,
+        models_to_skip,
+        no_check,
+        upload,
+        organization,
+    )
+
+    update_tiny_model_summary_file()
