@@ -18,7 +18,12 @@ def get_all_model_names():
         if module is None:
             continue
         # all mappings in a single auto modeling file
-        mapping_names = [x for x in dir(module) if x.endswith("_MAPPING_NAMES") and x.startswith("MODEL_")]
+        mapping_names = [
+            x
+            for x in dir(module)
+            if x.endswith("_MAPPING_NAMES")
+            and (x.startswith("MODEL_") or x.startswith("TF_MODEL_") or x.startswith("FLAX_MODEL_"))
+        ]
         for name in mapping_names:
             mapping = getattr(module, name)
             if mapping is not None:
@@ -43,7 +48,6 @@ def get_tiny_model_names():
 
     # Remove a tiny model name if one of its framework implementation hasn't yet a tiny version on the Hub.
     not_on_hub = model_names.difference(tiny_models_names)
-    existing_model_ = set()
     for model_name in copy.copy(tiny_models_names):
         if not model_name.startswith("TF") and f"TF{model_name}" in not_on_hub:
             tiny_models_names.remove(model_name)
@@ -54,7 +58,6 @@ def get_tiny_model_names():
 
 
 def get_tiny_model_summary_from_hub():
-
     special_models = [
         "EncoderDecoderModel-bert-bert",
         "SpeechEncoderDecoderModel-wav2vec2-bert",
@@ -138,7 +141,6 @@ def get_tiny_model_summary_from_hub():
 
 
 def update_tiny_model_summary_file():
-
     with open("./tiny_model_summary.json") as fp:
         new_data = json.load(fp)
     with open("./tests/utils/tiny_model_summary.json") as fp:
@@ -149,16 +151,13 @@ def update_tiny_model_summary_file():
         else:
             for key in ["tokenizer_classes", "processor_classes", "model_classes"]:
                 data[k][key].extend(v[key])
-    data = {
-        k: {x: sorted(y) for x, y in data[k].items()} for k in sorted(data.keys())
-    }
+    data = {k: {x: sorted(y) for x, y in data[k].items()} for k in sorted(data.keys())}
 
     with open("./updated_tiny_model_summary.json", "w") as fp:
         json.dump(data, fp, indent=4, ensure_ascii=False)
 
 
 if __name__ == "__main__":
-
     output_path = "tiny_models"
     all = True
     model_types = None
