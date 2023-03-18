@@ -1,0 +1,34 @@
+name: Self-hosted runner (push)
+
+on:
+  push:
+    branches:
+      - auto_tiny
+
+jobs:
+  update_tiny_models:
+    name: Update tiny models
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout transformers
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Check Runner Status
+        run: | 
+          python utils/update_tiny_models.py
+          mv mkdir tiny_model_creation_reports
+          mv tiny_model_summary.json tiny_model_creation_reports
+          mv updated_tiny_model_summary.json tiny_model_creation_reports
+          mv tiny_model_creation_report.json tiny_model_creation_reports
+          mv simple_report.txt tiny_model_creation_reports
+          mv failed_report.json tiny_model_creation_reports
+          mv simple_failed_report.txt tiny_model_creation_reports
+
+      - name: Test suite reports artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: tiny_model_creation_reports
+          path: /transformers/tiny_model_creation_reports
