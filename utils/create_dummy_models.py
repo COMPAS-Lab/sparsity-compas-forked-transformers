@@ -1127,11 +1127,7 @@ def build_tiny_model_summary(results):
             for arch_name in results[config_name][framework]:
                 base_arch_name = arch_name[2:] if arch_name.startswith("TF") else arch_name
                 # tiny model is not created for `arch_name`
-                if results[config_name][framework][arch_name] is None:
-                    continue
-                elif "model" not in results[config_name][framework][arch_name]:
-                    continue
-                elif results[config_name][framework][arch_name]["model"] is None:
+                if results[config_name][framework][arch_name]["model"] is None:
                     continue
                 if base_arch_name not in tiny_model_summary:
                     tiny_model_summary[base_arch_name] = {}
