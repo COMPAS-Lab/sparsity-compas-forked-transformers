@@ -154,9 +154,9 @@ if __name__ == "__main__":
         organization,
     )
 
-    with open("../tiny_model_summary.json") as fp:
+    with open("./tiny_model_summary.json") as fp:
         new_data = json.load(fp)
-    with open("../tests/utils/tiny_model_summary.json") as fp:
+    with open("./tests/utils/tiny_model_summary.json") as fp:
         data = json.load(fp)
     for k, v in new_data.items():
         if k not in data:
@@ -168,5 +168,5 @@ if __name__ == "__main__":
         k: {x: sorted(y) for x, y in data[k].items()} for k in sorted(data.keys())
     }
 
-    with open("../updated_tiny_model_summary.json", "w") as fp:
+    with open("./updated_tiny_model_summary.json", "w") as fp:
         json.dump(data, fp, indent=4, ensure_ascii=False)
