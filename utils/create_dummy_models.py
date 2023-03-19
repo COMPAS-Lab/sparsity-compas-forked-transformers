@@ -1345,6 +1345,12 @@ if __name__ == "__main__":
         type=str,
         help="The organization on the Hub to which the tiny models will be uploaded.",
     )
+    parser.add_argument(
+        "--token",
+        default=None,
+        type=str,
+        help="A valid authentication token for HuggingFace Hub with write access."
+    )
     parser.add_argument("output_path", type=Path, help="Path indicating where to store generated model.")
 
     args = parser.parse_args()
