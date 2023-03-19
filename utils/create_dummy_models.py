@@ -672,7 +672,7 @@ def upload_model(model_dir, organization):
         raise error
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        repo = Repository(local_dir=tmpdir, clone_from=repo_id)
+        repo = Repository(local_dir=tmpdir, clone_from=repo_id, token=os.environ.get("TOKEN", True))
         repo.git_pull()
         shutil.copytree(model_dir, tmpdir, dirs_exist_ok=True)
 
@@ -685,6 +685,7 @@ def upload_model(model_dir, organization):
                 commit_message=f"Update tiny models for {arch_name}",
                 commit_description=f"Upload tiny models for {arch_name}",
                 create_pr=True,
+                token=os.environ.get("TOKEN", None),
             )
             logger.warning(f"PR open in {hub_pr_url}.")
             # TODO: We need this information?
