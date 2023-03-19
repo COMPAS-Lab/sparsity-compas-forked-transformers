@@ -657,7 +657,7 @@ def upload_model(model_dir, organization):
     repo_exist = False
     error = None
     try:
-        create_repo(repo_id=repo_id, exist_ok=False, repo_type="model")
+        create_repo(repo_id=repo_id, exist_ok=False, repo_type="model", token=os.environ.get("TOKEN", True))
     except Exception as e:
         error = e
         if "You already created" in str(e):
