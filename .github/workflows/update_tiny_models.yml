@@ -3,7 +3,7 @@ name: Self-hosted runner (push)
 on:
   push:
     branches:
-      - auto_tinyff
+      - auto_tiny
 
 jobs:
   update_tiny_models:
