@@ -28,6 +28,7 @@ jobs:
           mv simple_report.txt tiny_model_creation_reports
           mv failed_report.json tiny_model_creation_reports
           mv simple_failed_report.txt tiny_model_creation_reports
+          mv failed_uploads.json tiny_model_creation_reports
 
       - name: Full report
         run: cat tiny_model_creation_reports/tiny_model_creation_report.json
