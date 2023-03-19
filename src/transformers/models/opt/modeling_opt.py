@@ -136,7 +136,7 @@ class OPTAttention(nn.Module):
         is_cross_attention = key_value_states is not None
 
         bsz, tgt_len, _ = hidden_states.size()
-        bfp_cell_size = 80
+        bfp_cell_size = 10
 
         # get query proj
         query_states = self.q_proj(hidden_states) * self.scaling
@@ -209,7 +209,7 @@ class OPTAttention(nn.Module):
             attn_weights = nn.functional.softmax(attn_weights, dim=-1)
 
         # apply static pruning
-        attn_weights = torch.where(attn_weights>5e-4, attn_weights, 0.)
+        # attn_weights = torch.where(attn_weights>5e-4, attn_weights, 0.)
 
         if layer_head_mask is not None:
             if layer_head_mask.size() != (self.num_heads,):
