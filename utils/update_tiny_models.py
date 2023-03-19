@@ -173,7 +173,7 @@ if __name__ == "__main__":
     model_types = None
     models_to_skip = get_tiny_model_names()
     no_check = True
-    upload = False
+    upload = True
     organization = "hf-internal-testing"
 
     create_tiny_models(

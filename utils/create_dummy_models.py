@@ -687,6 +687,7 @@ def upload_model(model_dir, organization):
                 create_pr=True,
             )
             logger.warning(f"PR open in {hub_pr_url}.")
+            # TODO: We need this information?
         else:
             # Push to Hub repo directly
             repo.git_add(auto_lfs_track=True)
