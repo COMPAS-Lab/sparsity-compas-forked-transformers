@@ -1,5 +1,6 @@
 import copy
 import json
+import os
 import time
 
 from create_dummy_models import create_tiny_models
@@ -184,6 +185,7 @@ if __name__ == "__main__":
         no_check,
         upload,
         organization,
+        token=os.environ.get("TOKEN", None),
     )
 
     update_tiny_model_summary_file()

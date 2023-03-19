@@ -647,7 +647,7 @@ def fill_result_with_error(result, error, trace, models_to_create):
     result["processor"] = {p.__class__.__name__: p.__class__.__name__ for p in result["processor"].values()}
 
 
-def upload_model(model_dir, organization):
+def upload_model(model_dir, organization, token):
     """Upload the tiny models"""
 
     arch_name = model_dir.split(os.path.sep)[-1]
@@ -657,7 +657,7 @@ def upload_model(model_dir, organization):
     repo_exist = False
     error = None
     try:
-        create_repo(repo_id=repo_id, exist_ok=False, repo_type="model", token=os.environ.get("TOKEN", True))
+        create_repo(repo_id=repo_id, exist_ok=False, repo_type="model", token=token)
     except Exception as e:
         error = e
         if "You already created" in str(e):
@@ -665,14 +665,14 @@ def upload_model(model_dir, organization):
             logger.warning("Remote repository exists and will be cloned.")
             repo_exist = True
             try:
-                create_repo(repo_id=repo_id, organization=organization, exist_ok=True, repo_type="model", token=os.environ.get("TOKEN", True))
+                create_repo(repo_id=repo_id, exist_ok=True, repo_type="model", token=token)
             except Exception as e:
                 error = e
     if error is not None:
         raise error
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        repo = Repository(local_dir=tmpdir, clone_from=repo_id, token=os.environ.get("TOKEN", True))
+        repo = Repository(local_dir=tmpdir, clone_from=repo_id, token=token)
         repo.git_pull()
         shutil.copytree(model_dir, tmpdir, dirs_exist_ok=True)
 
@@ -685,7 +685,7 @@ def upload_model(model_dir, organization):
                 commit_message=f"Update tiny models for {arch_name}",
                 commit_description=f"Upload tiny models for {arch_name}",
                 create_pr=True,
-                token=os.environ.get("TOKEN", None),
+                token=token,
             )
             logger.warning(f"PR open in {hub_pr_url}.")
             # TODO: We need this information?
@@ -1208,6 +1208,7 @@ def create_tiny_models(
     no_check,
     upload,
     organization,
+    token,
 ):
     clone_path = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
     if os.getcwd() != clone_path:
@@ -1271,7 +1272,7 @@ def create_tiny_models(
         if len(to_upload) > 0:
             for model_dir in to_upload:
                 try:
-                    upload_model(model_dir, organization)
+                    upload_model(model_dir, organization, token)
                 except Exception as e:
                     error = f"Failed to upload {model_dir}. {e.__class__.__name__}: {e}"
                     logger.error(error)
@@ -1359,4 +1360,5 @@ if __name__ == "__main__":
         args.no_check,
         args.upload,
         args.organization,
+        args.token,
     )
