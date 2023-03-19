@@ -1107,7 +1107,7 @@ def build(config_class, models_to_create, output_dir):
     return result
 
 
-def build_tiny_model_summary(results, organization=None):
+def build_tiny_model_summary(results, organization=None, token=None):
     """Build a summary: a dictionary of the form
     {
       model architecture name:
@@ -1146,7 +1146,7 @@ def build_tiny_model_summary(results, organization=None):
                 if organization is not None:
                     repo_name = f"tiny-random-{base_arch_name}"
                     repo_id = f"{organization}/{repo_name}"
-                    commit_hash = hf_api.repo_info(repo_id).sha
+                    commit_hash = hf_api.repo_info(repo_id, token=token).sha
                     tiny_model_summary[base_arch_name]["sha"] = commit_hash
 
     return tiny_model_summary
@@ -1285,7 +1285,7 @@ def create_tiny_models(
     # When using the items in this file to update the file `tests/utils/tiny_model_summary.json`, the model
     # architectures with `tokenizer_classes` and `processor_classes` being both empty should **NOT** be added to
     # `tests/utils/tiny_model_summary.json`.
-    tiny_model_summary = build_tiny_model_summary(results, organization=organization)
+    tiny_model_summary = build_tiny_model_summary(results, organization=organization, token=token)
     with open("tiny_model_summary.json", "w") as fp:
         json.dump(tiny_model_summary, fp, indent=4)
 
