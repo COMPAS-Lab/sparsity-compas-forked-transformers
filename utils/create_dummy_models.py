@@ -27,7 +27,7 @@ from pathlib import Path
 from check_config_docstrings import get_checkpoint_from_config_class
 from datasets import load_dataset
 from get_test_info import get_model_to_tester_mapping, get_tester_classes_for_model
-from huggingface_hub import Repository, create_repo, upload_folder
+from huggingface_hub import Repository, create_repo, hf_api, upload_folder
 
 from transformers import (
     CONFIG_MAPPING,
@@ -652,11 +652,12 @@ def upload_model(model_dir, organization):
 
     arch_name = model_dir.split(os.path.sep)[-1]
     repo_name = f"tiny-random-{arch_name}"
+    repo_id = f"{organization}/{repo_name}"
 
     repo_exist = False
     error = None
     try:
-        create_repo(repo_id=f"{organization}/{repo_name}", exist_ok=False, repo_type="model")
+        create_repo(repo_id=repo_id, exist_ok=False, repo_type="model")
     except Exception as e:
         error = e
         if "You already created" in str(e):
@@ -664,14 +665,14 @@ def upload_model(model_dir, organization):
             logger.warning("Remote repository exists and will be cloned.")
             repo_exist = True
             try:
-                create_repo(repo_id=repo_name, organization=organization, exist_ok=True, repo_type="model")
+                create_repo(repo_id=repo_id, organization=organization, exist_ok=True, repo_type="model")
             except Exception as e:
                 error = e
     if error is not None:
         raise error
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        repo = Repository(local_dir=tmpdir, clone_from=f"{organization}/{repo_name}")
+        repo = Repository(local_dir=tmpdir, clone_from=repo_id)
         repo.git_pull()
         shutil.copytree(model_dir, tmpdir, dirs_exist_ok=True)
 
@@ -679,7 +680,7 @@ def upload_model(model_dir, organization):
             # Open a PR on the existing Hub repo.
             hub_pr_url = upload_folder(
                 folder_path=model_dir,
-                repo_id=f"{organization}/{repo_name}",
+                repo_id=repo_id,
                 repo_type="model",
                 commit_message=f"Update tiny models for {arch_name}",
                 commit_description=f"Upload tiny models for {arch_name}",
@@ -691,7 +692,7 @@ def upload_model(model_dir, organization):
             repo.git_add(auto_lfs_track=True)
             repo.git_commit(f"Upload tiny models for {arch_name}")
             repo.git_push(blocking=True)  # this prints a progress bar with the upload
-            logger.warning(f"Tiny models {arch_name} pushed to {organization}/{repo_name}.")
+            logger.warning(f"Tiny models {arch_name} pushed to {repo_id}.")
 
 
 def build_composite_models(config_class, output_dir):
@@ -1104,7 +1105,7 @@ def build(config_class, models_to_create, output_dir):
     return result
 
 
-def build_tiny_model_summary(results):
+def build_tiny_model_summary(results, organization=None):
     """Build a summary: a dictionary of the form
     {
       model architecture name:
@@ -1140,6 +1141,11 @@ def build_tiny_model_summary(results):
                 tiny_model_summary[base_arch_name]["model_classes"] = sorted(
                     tiny_model_summary[base_arch_name].get("model_classes", []) + [arch_name]
                 )
+                if organization is not None:
+                    repo_name = f"tiny-random-{base_arch_name}"
+                    repo_id = f"{organization}/{repo_name}"
+                    commit_hash = hf_api.repo_info(repo_id).sha
+                    tiny_model_summary[base_arch_name]["sha"] = commit_hash
 
     return tiny_model_summary
 
@@ -1254,7 +1260,7 @@ def create_tiny_models(
     # When using the items in this file to update the file `tests/utils/tiny_model_summary.json`, the model
     # architectures with `tokenizer_classes` and `processor_classes` being both empty should **NOT** be added to
     # `tests/utils/tiny_model_summary.json`.
-    tiny_model_summary = build_tiny_model_summary(results)
+    tiny_model_summary = build_tiny_model_summary(results, organization=organization)
     with open("tiny_model_summary.json", "w") as fp:
         json.dump(tiny_model_summary, fp, indent=4)
 
