@@ -1254,33 +1254,6 @@ def create_tiny_models(
         results[c.__name__] = result
         print("=" * 40)
 
-    with open("tiny_model_creation_report.json", "w") as fp:
-        json.dump(results, fp, indent=4)
-
-    # Build the tiny model summary file. The `tokenizer_classes` and `processor_classes` could be both empty lists.
-    # When using the items in this file to update the file `tests/utils/tiny_model_summary.json`, the model
-    # architectures with `tokenizer_classes` and `processor_classes` being both empty should **NOT** be added to
-    # `tests/utils/tiny_model_summary.json`.
-    tiny_model_summary = build_tiny_model_summary(results, organization=organization)
-    with open("tiny_model_summary.json", "w") as fp:
-        json.dump(tiny_model_summary, fp, indent=4)
-
-    # Build the warning/failure report (json format): same format as the complete `results` except this contains only
-    # warnings or errors.
-    failed_results = build_failed_report(results)
-    with open("failed_report.json", "w") as fp:
-        json.dump(failed_results, fp, indent=4)
-
-    simple_report, failed_report = build_simple_report(results)
-    # The simplified report: a .txt file with each line of format:
-    # {model architecture name}: {OK or error message}
-    with open("simple_report.txt", "w") as fp:
-        fp.write(simple_report)
-
-    # The simplified failure report: same above except this only contains line with errors
-    with open("simple_failed_report.txt", "w") as fp:
-        fp.write(failed_report)
-
     if upload:
         if organization is None:
             raise ValueError("The argument `organization` could not be `None`. No model is uploaded")
@@ -1305,6 +1278,33 @@ def create_tiny_models(
 
         with open("failed_uploads.json", "w") as fp:
             json.dump(upload_results, fp, indent=4)
+
+    # Build the tiny model summary file. The `tokenizer_classes` and `processor_classes` could be both empty lists.
+    # When using the items in this file to update the file `tests/utils/tiny_model_summary.json`, the model
+    # architectures with `tokenizer_classes` and `processor_classes` being both empty should **NOT** be added to
+    # `tests/utils/tiny_model_summary.json`.
+    tiny_model_summary = build_tiny_model_summary(results, organization=organization)
+    with open("tiny_model_summary.json", "w") as fp:
+        json.dump(tiny_model_summary, fp, indent=4)
+
+    with open("tiny_model_creation_report.json", "w") as fp:
+        json.dump(results, fp, indent=4)
+
+    # Build the warning/failure report (json format): same format as the complete `results` except this contains only
+    # warnings or errors.
+    failed_results = build_failed_report(results)
+    with open("failed_report.json", "w") as fp:
+        json.dump(failed_results, fp, indent=4)
+
+    simple_report, failed_report = build_simple_report(results)
+    # The simplified report: a .txt file with each line of format:
+    # {model architecture name}: {OK or error message}
+    with open("simple_report.txt", "w") as fp:
+        fp.write(simple_report)
+
+    # The simplified failure report: same above except this only contains line with errors
+    with open("simple_failed_report.txt", "w") as fp:
+        fp.write(failed_report)
 
 
 if __name__ == "__main__":
