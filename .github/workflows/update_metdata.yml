@@ -6,9 +6,6 @@ on:
       - main
       - update_transformers_metadata
 
-env:
-  TOKEN: ${{ secrets.SYLVAIN_HF_TOKEN }}
-
 jobs:
   build_and_package:
     runs-on: ubuntu-latest

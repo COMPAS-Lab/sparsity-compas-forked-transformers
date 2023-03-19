@@ -5,6 +5,9 @@ on:
     branches:
       - auto_tiny
 
+env:
+  TOKEN: ${{ secrets.SYLVAIN_HF_TOKEN }}
+
 jobs:
   update_tiny_models:
     name: Update tiny models
