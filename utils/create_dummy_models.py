@@ -665,7 +665,7 @@ def upload_model(model_dir, organization):
             logger.warning("Remote repository exists and will be cloned.")
             repo_exist = True
             try:
-                create_repo(repo_id=repo_id, organization=organization, exist_ok=True, repo_type="model")
+                create_repo(repo_id=repo_id, organization=organization, exist_ok=True, repo_type="model", token=os.environ.get("TOKEN", True))
             except Exception as e:
                 error = e
     if error is not None:
