@@ -44,6 +44,8 @@ from transformers import (
     HfArgumentParser,
     Trainer,
     TrainingArguments,
+    LlamaTokenizer,
+    LlamaForCausalLM,
     default_data_collator,
     is_torch_xla_available,
     set_seed,
@@ -410,6 +412,8 @@ def main():
     }
     if model_args.tokenizer_name:
         tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name, **tokenizer_kwargs)
+    elif "llama" in model_args.model_name_or_path:
+        tokenizer = LlamaTokenizer.from_pretrained(model_args.model_name_or_path, **tokenizer_kwargs)
     elif model_args.model_name_or_path:
         tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path, **tokenizer_kwargs)
     else:

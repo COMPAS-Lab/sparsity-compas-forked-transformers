@@ -48,6 +48,8 @@ from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
     AutoTokenizer,
+    LlamaTokenizer,
+    LlamaForCausalLM,
     SchedulerType,
     default_data_collator,
     get_scheduler,
@@ -494,7 +496,7 @@ def main():
 
     # Log a few random samples from the training set:
     for index in random.sample(range(len(train_dataset)), 3):
-        logger.info(f"Sample {index} of the training set: {train_dataset[index]}.")
+        print(f"Sample {index} of the training set: {train_dataset[index]}.")
 
     # DataLoaders creation:
     train_dataloader = DataLoader(
