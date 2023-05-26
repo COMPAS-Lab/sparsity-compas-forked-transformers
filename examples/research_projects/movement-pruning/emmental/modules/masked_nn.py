@@ -18,7 +18,9 @@ The mask (binary or not) is computed at each forward pass and multiplied against
 the weight matrix to prune a portion of the weights.
 The pruned weight matrix is then multiplied against the inputs (and if necessary, the bias is added).
 """
-
+import os 
+import bfp_ops
+import torch.nn.functional as F
 import math
 
 import torch
@@ -42,6 +44,8 @@ class MaskedLinear(nn.Linear):
         mask_init: str = "constant",
         mask_scale: float = 0.0,
         pruning_method: str = "topK",
+        mask_block_rows:int = 1,
+        mask_block_cols:int = 1,
     ):
         """
         Args:
@@ -67,11 +71,15 @@ class MaskedLinear(nn.Linear):
         super(MaskedLinear, self).__init__(in_features=in_features, out_features=out_features, bias=bias)
         assert pruning_method in ["topK", "threshold", "sigmoied_threshold", "magnitude", "l0"]
         self.pruning_method = pruning_method
+        self.mask_block_rows = mask_block_rows
+        self.mask_block_cols = mask_block_cols
 
         if self.pruning_method in ["topK", "threshold", "sigmoied_threshold", "l0"]:
             self.mask_scale = mask_scale
             self.mask_init = mask_init
-            self.mask_scores = nn.Parameter(torch.empty(self.weight.size()))
+            size = self.weight.size()
+            mask_size = (math.ceil(size[0] / self.mask_block_rows), math.ceil(size[1] / self.mask_block_cols))
+            self.mask_scores = nn.Parameter(torch.Tensor(size=mask_size))
             self.init_mask()
 
     def init_mask(self):
@@ -82,7 +90,13 @@ class MaskedLinear(nn.Linear):
         elif self.mask_init == "kaiming":
             init.kaiming_uniform_(self.mask_scores, a=math.sqrt(5))
 
-    def forward(self, input: torch.tensor, threshold: float):
+    @staticmethod
+    def expand_mask_(mask, mask_block_rows, mask_block_cols):
+        mask = torch.repeat_interleave(mask, mask_block_rows, dim=0)
+        mask = torch.repeat_interleave(mask, mask_block_cols, dim=1)
+        return mask
+        
+    def forward(self, input: torch.tensor, threshold: float, filepath, mant_bits, vec_size, sample = 0, toggle_bfp = 0):
         # Get the mask
         if self.pruning_method == "topK":
             mask = TopKBinarizer.apply(self.mask_scores, threshold)
@@ -100,7 +114,52 @@ class MaskedLinear(nn.Linear):
                 s = torch.sigmoid(self.mask_scores)
             s_bar = s * (r - l) + l
             mask = s_bar.clamp(min=0.0, max=1.0)
+        
+        if self.pruning_method != "magnitude":
+            mask = MaskedLinear.expand_mask_(mask,
+                                             mask_block_rows=self.mask_block_rows,
+                                             mask_block_cols=self.mask_block_cols
+                                             )
+
+        #print(mask.shape)
         # Mask weights with computed mask
-        weight_thresholded = mask * self.weight
+        if self.pruning_method == "magnitude":
+            weight_thresholded = mask * self.weight
+        else:
+            
+            clone_weights = self.weight.clone()
+            original_shape = clone_weights.shape
+            if clone_weights.shape[-1]%vec_size == 0:
+                pad = 0
+            else:
+                pad = vec_size - clone_weights.shape[-1]%vec_size
+            padded_weights = F.pad(clone_weights, (0, pad))
+            apply_mask = mask * padded_weights
+            weight_thresholded = apply_mask[:original_shape[0], :original_shape[1]]
+            
+            
+            #weight_thresholded = self.weight.clone()
+            #weight_thresholded[:mask.shape[0],:mask.shape[1]] = mask * self.weight[:mask.shape[0],:mask.shape[1]]
+        
+        
         # Compute output (linear layer) with masked weights
-        return nn.functional.linear(input, weight_thresholded, self.bias)
+        
+        
+        if toggle_bfp:
+            bfp_input = bfp_ops.convert_bfp(input, mant_bits, vec_size,)
+            bfp_weight = bfp_ops.convert_bfp(weight_thresholded, mant_bits, vec_size,)
+            result = nn.functional.linear(bfp_input, bfp_weight, self.bias)
+        else:
+            result = nn.functional.linear(input, weight_thresholded, self.bias)
+            
+        if sample:
+            if not os.path.exists(filepath + '.pt'):
+                        with open(filepath + '.pt', 'wb') as f:
+                            torch.save(bfp_weight, f)
+            if not os.path.exists(filepath + '_mask.pt'):
+                        with open(filepath + '_mask.pt', 'wb') as f:
+                            torch.save(mask, f)
+            
+        return result
+        
+        #return nn.functional.linear(input, weight_thresholded, self.bias)

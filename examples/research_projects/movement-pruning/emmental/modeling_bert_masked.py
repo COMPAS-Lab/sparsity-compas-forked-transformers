@@ -18,6 +18,12 @@
 compute the adaptive mask.
 Built on top of `transformers.models.bert.modeling_bert`"""
 
+from transformers.bfp import bfp_ops
+import os
+import torch.nn.functional as F
+import skimage.measure
+import numpy as np
+
 import logging
 import math
 
@@ -79,8 +85,8 @@ class BertSelfAttention(nn.Module):
         super().__init__()
         if config.hidden_size % config.num_attention_heads != 0 and not hasattr(config, "embedding_size"):
             raise ValueError(
-                "The hidden size (%d) is not a multiple of the number of attention heads (%d)"
-                % (config.hidden_size, config.num_attention_heads)
+                "The hidden size (%d) is not a multiple of the number of attention "
+                "heads (%d)" % (config.hidden_size, config.num_attention_heads)
             )
         self.output_attentions = config.output_attentions
 
@@ -94,6 +100,8 @@ class BertSelfAttention(nn.Module):
             pruning_method=config.pruning_method,
             mask_init=config.mask_init,
             mask_scale=config.mask_scale,
+            mask_block_rows = 3,
+            mask_block_cols = 20,
         )
         self.key = MaskedLinear(
             config.hidden_size,
@@ -101,6 +109,8 @@ class BertSelfAttention(nn.Module):
             pruning_method=config.pruning_method,
             mask_init=config.mask_init,
             mask_scale=config.mask_scale,
+            mask_block_rows = 3,
+            mask_block_cols = 20,
         )
         self.value = MaskedLinear(
             config.hidden_size,
@@ -108,6 +118,8 @@ class BertSelfAttention(nn.Module):
             pruning_method=config.pruning_method,
             mask_init=config.mask_init,
             mask_scale=config.mask_scale,
+            mask_block_rows = 3,
+            mask_block_cols = 20,
         )
 
         self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
@@ -125,33 +137,117 @@ class BertSelfAttention(nn.Module):
         encoder_hidden_states=None,
         encoder_attention_mask=None,
         threshold=None,
+        
+        mant_bits = 0,
+        vec_size = 0, 
+        Wqkv = 0, 
+        qk = 0,
+        av = 0, 
+        index = -1,
+        samplepath = '',
+        sample = 0,
+        stats = 0
     ):
-        mixed_query_layer = self.query(hidden_states, threshold=threshold)
+    
+        if stats:
+            statspath = 'share_qkv/stats/'
+            if not os.path.exists(statspath):
+                os.makedirs(statspath)
+            filepath = 'stats_count.txt'
+            if not os.path.exists(statspath + filepath):
+                with open(statspath + filepath, 'w') as f:
+                    f.write(str(0) + '\n')
+                    f.write(str(0) + '\n')
+                    f.write(str(0))
+                    f.close()
+            with open(statspath + filepath, 'r') as f:
+                lines = f.read().splitlines()
+                count = lines[0]
+                accum_seq_len = lines[1]
+                accum_seq_len_2 = lines[2]
+                f.close()
+                
+        if sample:
+        
+            if not os.path.exists(samplepath):
+                os.makedirs(samplepath)
+            if not os.path.exists(samplepath + 'weights/'):
+                os.makedirs(samplepath + 'weights/')
+            if not os.path.exists(samplepath + 'act/'):
+                os.makedirs(samplepath + 'act/')
+            if not os.path.exists(samplepath + 'act/seqlen/'):
+                os.makedirs(samplepath + 'act/seqlen/')            
+            if not os.path.exists(samplepath + 'act/query/'):
+                os.makedirs(samplepath + 'act/query/')
+            if not os.path.exists(samplepath + 'act/key/'):
+                os.makedirs(samplepath + 'act/key/')
+            if not os.path.exists(samplepath + 'act/value/'):
+                os.makedirs(samplepath + 'act/value/')
+            if not os.path.exists(samplepath + 'act/attscores/'):
+                os.makedirs(samplepath + 'act/attscores/')
+            if not os.path.exists(samplepath + 'act/mask_attscores/'):
+                os.makedirs(samplepath + 'act/mask_attscores/')
+            if not os.path.exists(samplepath + 'act/attprobs/'):
+                os.makedirs(samplepath + 'act/attprobs/')
+            if not os.path.exists(samplepath + 'act/bfp_attprobs/'):
+                os.makedirs(samplepath + 'act/bfp_attprobs/')
+            if not os.path.exists(samplepath + 'act/context/'):
+                os.makedirs(samplepath + 'act/context/')
+            
+        if sample:
+            filepath = 'sample_count.txt'
+            if not os.path.exists(samplepath + filepath):
+                with open(samplepath + filepath, 'w') as f:
+                    f.write(str(0))
+                    f.close()
+            with open(samplepath + filepath, 'r') as f:
+                count = f.readline()
+                f.close()
+                
+        mixed_query_layer = self.query(hidden_states, threshold=threshold, filepath = samplepath + 'weights/query-' + str(index), mant_bits = mant_bits, vec_size = vec_size, sample=sample, toggle_bfp=Wqkv)
 
         # If this is instantiated as a cross-attention module, the keys
         # and values come from an encoder; the attention mask needs to be
         # such that the encoder's padding tokens are not attended to.
         if encoder_hidden_states is not None:
-            mixed_key_layer = self.key(encoder_hidden_states, threshold=threshold)
-            mixed_value_layer = self.value(encoder_hidden_states, threshold=threshold)
+            mixed_key_layer = self.key(encoder_hidden_states, threshold=threshold, filepath = samplepath + 'weights/key-' + str(index), mant_bits = mant_bits, vec_size = vec_size, sample=sample, toggle_bfp=Wqkv)
+            mixed_value_layer = self.value(encoder_hidden_states, threshold=threshold, filepath = samplepath + 'weights/value-' + str(index), mant_bits = mant_bits, vec_size = vec_size, sample=sample, toggle_bfp=Wqkv)
             attention_mask = encoder_attention_mask
         else:
-            mixed_key_layer = self.key(hidden_states, threshold=threshold)
-            mixed_value_layer = self.value(hidden_states, threshold=threshold)
+            mixed_key_layer = self.key(hidden_states, threshold=threshold, filepath = samplepath + 'weights/key-' + str(index), mant_bits = mant_bits, vec_size = vec_size, sample = sample, toggle_bfp=Wqkv)
+            mixed_value_layer = self.value(hidden_states, threshold=threshold, filepath = samplepath + 'weights/value-' + str(index), mant_bits = mant_bits, vec_size = vec_size, sample=sample, toggle_bfp=Wqkv)
 
         query_layer = self.transpose_for_scores(mixed_query_layer)
         key_layer = self.transpose_for_scores(mixed_key_layer)
         value_layer = self.transpose_for_scores(mixed_value_layer)
-
-        # Take the dot product between "query" and "key" to get the raw attention scores.
-        attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
+        
+        if qk: 
+            BFP_query_layer = bfp_ops.convert_bfp(query_layer, mant_bits, query_layer.shape[-1], )
+            BFP_key_layer = bfp_ops.convert_bfp(key_layer, mant_bits, key_layer.shape[-1], )       
+    
+            # Take the dot product between "query" and "key" to get the raw attention scores.
+            attention_scores = torch.matmul(BFP_query_layer, BFP_key_layer.transpose(-1, -2))
+        else:
+            attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))     
+                    
+        
+        
+        
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
         if attention_mask is not None:
             # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
             attention_scores = attention_scores + attention_mask
+            
 
+
+
+        #JASON
+        mask_attention_scores = attention_scores.clone()
+        #mask_attention_scores [mask_attention_scores < 0] = -10000
         # Normalize the attention scores to probabilities.
-        attention_probs = nn.functional.softmax(attention_scores, dim=-1)
+        attention_probs = nn.functional.softmax(mask_attention_scores, dim=-1)
+
+
 
         # This is actually dropping out entire tokens to attend to, which might
         # seem a bit unusual, but is taken from the original Transformer paper.
@@ -161,7 +257,138 @@ class BertSelfAttention(nn.Module):
         if head_mask is not None:
             attention_probs = attention_probs * head_mask
 
-        context_layer = torch.matmul(attention_probs, value_layer)
+        if av:
+            # must transpose
+            transpose_value_layer = value_layer.transpose(2,3)
+
+            #BFP_attention_probs = bfp_ops.convert_bfp(attention_probs, mant_bits, vec_size, )
+            BFP_attention_probs = bfp_ops.convert_bfp(attention_probs, mant_bits, attention_probs.shape[-1], entire = 0 )
+            BFP_value_layer = bfp_ops.convert_bfp(transpose_value_layer, mant_bits, transpose_value_layer.shape[-1], ).transpose(2,3) #transpose back
+            seq_len = torch.argmin(attention_mask, dim = -1, keepdim=True)
+
+            mask_att_prob = BFP_attention_probs.clone()
+            mask_att_prob[BFP_attention_probs <= ((1 / seq_len) + 1e-4)] = 0
+
+            context_layer = torch.matmul(mask_att_prob, BFP_value_layer)
+        else:
+            context_layer = torch.matmul(attention_probs, value_layer)
+    
+        
+        #print(BFP_attention_probs[BFP_attention_probs!=0].min())
+
+        if stats:
+            sparse_path = statspath + str(index) + '.pt'
+            #print(attention_mask.shape)
+            #print(attention_mask)
+            #seq_len = np.argmin(attention_mask)
+            seq_len = torch.argmin(attention_mask)
+            #print(seq_len)
+            
+            if seq_len > 0:
+                #print(seq_len)
+                if not os.path.exists(sparse_path):
+                    sparsity = torch.zeros(12, BFP_attention_probs.shape[1])
+                    torch.save(sparsity, sparse_path)
+                #sparsity = torch.load(sparse_path, map_location = torch.device('cpu'))
+                sparsity = torch.load(sparse_path, map_location = torch.device('cuda:0'))
+                
+                actual_att_probs = BFP_attention_probs[0,:,:seq_len,:seq_len]
+                flatten_att_probs = actual_att_probs.reshape(actual_att_probs.shape[0], -1) #flatten by head
+                
+                # sum sparsity percent
+                sample_sparsity = (flatten_att_probs == 0).sum(axis = -1) / flatten_att_probs.shape[1] #number of 0s divide by total elements per head
+                sparsity[0] += sample_sparsity
+            
+                # sum sparsity percent squared
+                sparsity[1] += sample_sparsity**2
+            
+                #pad = vec_size - actual_att_probs.shape[-1]%vec_size
+                #padded_att_probs = F.pad(actual_att_probs, (0, pad))
+                #reshaped_att_probs = padded_att_probs.reshape(padded_att_probs.shape[0], padded_att_probs.shape[1], padded_att_probs.shape[-1] // vec_size, vec_size) # pad column
+                
+                reshaped_att_probs = torch.from_numpy(skimage.measure.block_reduce(actual_att_probs.cpu(), (1, 3, vec_size), np.count_nonzero)).cuda()
+                
+               
+                count_nzs = reshaped_att_probs.count_nonzero(axis=-1) # number of nonzeros per block of 20
+                
+                #print(vec_size)
+                #print(reshaped_att_probs.shape)
+                #print(count_nzs.shape)
+                #print(count_nzs)
+                avg_nzs_per_block = torch.stack([arr[arr!=0].mean() for arr in reshaped_att_probs.float()]) # avg number of nzs per blocks that aren't completely 0 
+                sparsity [2] += avg_nzs_per_block
+                sparsity [3] += avg_nzs_per_block**2
+                
+                avg_nz_blocks_per_row = count_nzs.float().mean(axis=-1) # number of nonzero blocks per row averaged over the number of rows)
+                print(avg_nz_blocks_per_row)            
+                sparsity [4] += avg_nz_blocks_per_row
+                sparsity[5] += avg_nz_blocks_per_row**2
+            
+                avg_nz_blocks_per_row_percent = (count_nzs / reshaped_att_probs.shape[-1]).mean(axis=-1) # number of nonzero blocks per row divided by the total number of blocks per row averaged over the rows
+     
+                sparsity [6] += avg_nz_blocks_per_row_percent
+                sparsity[7] += avg_nz_blocks_per_row_percent**2
+                
+                #for row sparsity
+                reshaped_att_probs=actual_att_probs
+                count_nzs = reshaped_att_probs.count_nonzero(axis=-1)
+
+                avg_nzs_per_row = torch.stack([arr.mean() for arr in count_nzs.float()]) #avg number of nzs per row that aren't completely 0 
+                sparsity [8] += avg_nzs_per_row
+                sparsity [9] += avg_nzs_per_row**2
+                            
+                nz_row_percent = (count_nzs!=0).sum(axis=-1) / reshaped_att_probs.shape[1] #number of nonzero rows divided by the number of rows
+                            
+                sparsity[10] += nz_row_percent
+                sparsity[11] += nz_row_percent**2
+                
+                torch.save(sparsity,sparse_path)
+                #print(sparsity)
+                
+                if index == 11:
+                    with open(statspath + filepath, 'w') as f:
+                        f.write(str(int(count)+BFP_attention_probs.shape[0]) + '\n')
+                        f.write(str(int(accum_seq_len) + seq_len.item()) + '\n')
+                        f.write(str(int(accum_seq_len_2) + (seq_len.item())**2))
+                        f.close()
+        
+    
+        if sample:
+            #print(str(index) + '-' + str(count))
+            seq_len = torch.argmin(attention_mask, dim = -1, keepdim=True)
+            seqlen_path = samplepath + 'act/seqlen/' + str(index) + '-' + str(count) + '.pt'
+            query_path = samplepath + 'act/query/' + str(index) + '-' + str(count) + '.pt'
+            key_path = samplepath + 'act/key/' + str(index) + '-' + str(count) + '.pt'
+            value_path = samplepath + 'act/value/' + str(index) + '-' + str(count) + '.pt'
+            att_score_path = samplepath + 'act/attscores/' + str(index) + '-' + str(count) + '.pt'
+            mask_att_score_path = samplepath + 'act/mask_attscores/' + str(index) + '-' + str(count) + '.pt'
+            att_prob_path = samplepath + 'act/attprobs/' + str(index) + '-' + str(count) + '.pt'
+            bfp_att_prob_path = samplepath + 'act/bfp_attprobs/' + str(index) + '-' + str(count) + '.pt'
+            context_path = samplepath + 'act/context/' + str(index) + '-' + str(count) + '.pt'
+
+            with open(seqlen_path, 'wb') as f:
+                torch.save(seq_len, f)
+            with open(query_path, 'wb') as f:
+                torch.save(BFP_query_layer, f)
+            with open(key_path, 'wb') as f:
+                torch.save(BFP_key_layer, f)
+            with open(value_path, 'wb') as f:
+                torch.save(BFP_value_layer, f)
+            #with open(att_score_path, 'wb') as f:
+            #    torch.save(attention_scores, f)
+            #with open(mask_att_score_path, 'wb') as f:
+            #    torch.save(mask_attention_scores, f)
+            #with open(att_prob_path, 'wb') as f:
+            #    torch.save(attention_probs, f)
+            with open(bfp_att_prob_path, 'wb') as f:
+                torch.save(BFP_attention_probs, f)
+            #with open(context_path, 'wb') as f:
+            #    torch.save(context_layer, f)
+            if index == 11:
+                with open(samplepath + filepath, 'w') as f:
+                    f.write(str(int(count)+1))
+                    f.close()
+
 
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
         new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
@@ -180,12 +407,22 @@ class BertSelfOutput(nn.Module):
             pruning_method=config.pruning_method,
             mask_init=config.mask_init,
             mask_scale=config.mask_scale,
+            mask_block_rows = 3,
+            mask_block_cols = 20,
         )
         self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, hidden_states, input_tensor, threshold):
-        hidden_states = self.dense(hidden_states, threshold=threshold)
+    def forward(self, hidden_states, input_tensor, threshold,
+        mant_bits = 0,
+        vec_size = 0, 
+        fc1 = 0, 
+        index = -1,
+        samplepath = '',
+        sample = 0
+    ):
+    
+        hidden_states = self.dense(hidden_states, threshold=threshold, filepath = samplepath + 'weights/fc1-' + str(index), mant_bits = mant_bits, vec_size = vec_size, sample = sample, toggle_bfp=fc1)
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
         return hidden_states
@@ -229,6 +466,16 @@ class BertAttention(nn.Module):
         encoder_hidden_states=None,
         encoder_attention_mask=None,
         threshold=None,
+        
+        mant_bits = 0,
+        vec_size = 0, 
+        Wqkv = 0, 
+        qk = 0,
+        av = 0, 
+        fc1 = 0, 
+        index = -1,
+        samplepath = '',
+        sample = 0,
     ):
         self_outputs = self.self(
             hidden_states,
@@ -237,8 +484,24 @@ class BertAttention(nn.Module):
             encoder_hidden_states,
             encoder_attention_mask,
             threshold=threshold,
+            
+            mant_bits = mant_bits,
+            vec_size = vec_size, 
+            Wqkv = Wqkv, 
+            qk = qk,
+            av = av, 
+            index = index,
+            samplepath = samplepath,
+            sample = sample
         )
-        attention_output = self.output(self_outputs[0], hidden_states, threshold=threshold)
+        attention_output = self.output(self_outputs[0], hidden_states, threshold=threshold,
+            mant_bits = mant_bits,
+            vec_size = vec_size, 
+            fc1 = fc1,
+            index = index,
+            samplepath = samplepath,
+            sample = sample
+        )
         outputs = (attention_output,) + self_outputs[1:]  # add attentions if we output them
         return outputs
 
@@ -252,14 +515,25 @@ class BertIntermediate(nn.Module):
             pruning_method=config.pruning_method,
             mask_init=config.mask_init,
             mask_scale=config.mask_scale,
+            mask_block_rows = 3,
+            mask_block_cols = 20,
         )
         if isinstance(config.hidden_act, str):
             self.intermediate_act_fn = ACT2FN[config.hidden_act]
         else:
             self.intermediate_act_fn = config.hidden_act
 
-    def forward(self, hidden_states, threshold):
-        hidden_states = self.dense(hidden_states, threshold=threshold)
+    def forward(self, hidden_states, threshold,
+        mant_bits = 0,
+        vec_size = 0, 
+        fc2 = 0, 
+        index = -1,
+        samplepath = '',
+        sample = 0,
+        attention_mask = None
+    ):
+
+        hidden_states = self.dense(hidden_states, threshold=threshold, filepath = samplepath + 'weights/fc2-' + str(index), mant_bits = mant_bits, vec_size = vec_size, sample=sample, toggle_bfp=fc2)
         hidden_states = self.intermediate_act_fn(hidden_states)
         return hidden_states
 
@@ -273,12 +547,23 @@ class BertOutput(nn.Module):
             pruning_method=config.pruning_method,
             mask_init=config.mask_init,
             mask_scale=config.mask_scale,
+            mask_block_rows = 3,
+            mask_block_cols = 20,
         )
         self.LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
 
-    def forward(self, hidden_states, input_tensor, threshold):
-        hidden_states = self.dense(hidden_states, threshold=threshold)
+    def forward(self, hidden_states, input_tensor, threshold,
+        mant_bits = 0,
+        vec_size = 0, 
+        fc3 = 0,
+        index = -1,
+        samplepath = '',
+        sample = 0,
+        attention_mask = None
+    ):
+
+        hidden_states = self.dense(hidden_states, threshold=threshold, filepath = samplepath + 'weights/fc3-' + str(index), mant_bits = mant_bits, vec_size = vec_size, sample=sample, toggle_bfp=fc3)
         hidden_states = self.dropout(hidden_states)
         hidden_states = self.LayerNorm(hidden_states + input_tensor)
         return hidden_states
@@ -302,8 +587,30 @@ class BertLayer(nn.Module):
         encoder_hidden_states=None,
         encoder_attention_mask=None,
         threshold=None,
+        
+        mant_bits = 0,
+        vec_size = 0, 
+        Wqkv = 0, 
+        qk = 0,
+        av = 0, 
+        fc1 = 0, 
+        fc2 = 0, 
+        fc3 = 0,
+        index = -1,
+        samplepath = '',
+        sample = 0,
     ):
-        self_attention_outputs = self.attention(hidden_states, attention_mask, head_mask, threshold=threshold)
+        self_attention_outputs = self.attention(hidden_states, attention_mask, head_mask, threshold=threshold,
+            mant_bits = mant_bits,
+            vec_size = vec_size, 
+            Wqkv = Wqkv, 
+            qk = qk,
+            av = av, 
+            fc1 = fc1,
+            index = index,
+            samplepath = samplepath,
+            sample = sample
+        )
         attention_output = self_attention_outputs[0]
         outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
 
@@ -314,8 +621,24 @@ class BertLayer(nn.Module):
             attention_output = cross_attention_outputs[0]
             outputs = outputs + cross_attention_outputs[1:]  # add cross attentions if we output attention weights
 
-        intermediate_output = self.intermediate(attention_output, threshold=threshold)
-        layer_output = self.output(intermediate_output, attention_output, threshold=threshold)
+        intermediate_output = self.intermediate(attention_output, threshold=threshold,
+            mant_bits = mant_bits,
+            vec_size = vec_size, 
+            fc2 = fc2,
+            index = index,
+            samplepath = samplepath,
+            sample = sample,
+            attention_mask = attention_mask
+        )
+        layer_output = self.output(intermediate_output, attention_output, threshold=threshold,
+            mant_bits = mant_bits,
+            vec_size = vec_size, 
+            fc3 = fc3,
+            index = index,
+            samplepath = samplepath,
+            sample = sample,
+            attention_mask = attention_mask
+        )
         outputs = (layer_output,) + outputs
         return outputs
 
@@ -339,6 +662,21 @@ class BertEncoder(nn.Module):
         all_hidden_states = ()
         all_attentions = ()
         for i, layer_module in enumerate(self.layer):
+            #print(i)
+            mant_bitsi = 3
+            vec_sizei = 20
+            Wqkvi = 1
+            qki = 1
+            avi = 1
+            fc1i = 1
+            fc2i = 1
+            fc3i = 1
+            sample = 0
+        
+            samplepath = 'share_qkv/sample/'
+            
+
+
             if self.output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
 
@@ -349,6 +687,18 @@ class BertEncoder(nn.Module):
                 encoder_hidden_states,
                 encoder_attention_mask,
                 threshold=threshold,
+                
+                mant_bits = mant_bitsi, 
+                vec_size = vec_sizei,
+                Wqkv = Wqkvi,
+                qk = qki,
+                av = avi,
+                fc1 = fc1i,
+                fc2 = fc2i,
+                fc3 = fc3i,
+                index = i,
+                samplepath = samplepath,
+                sample = sample
             )
             hidden_states = layer_outputs[0]
 
@@ -648,10 +998,9 @@ class MaskedBertModel(MaskedBertPreTrainedModel):
         sequence_output = encoder_outputs[0]
         pooled_output = self.pooler(sequence_output)
 
-        outputs = (
-            sequence_output,
-            pooled_output,
-        ) + encoder_outputs[1:]  # add hidden_states and attentions if they are here
+        outputs = (sequence_output, pooled_output,) + encoder_outputs[
+            1:
+        ]  # add hidden_states and attentions if they are here
         return outputs  # sequence_output, pooled_output, (hidden_states), (attentions)
 
 

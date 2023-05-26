@@ -24,12 +24,12 @@ import timeit
 
 import numpy as np
 import torch
-from emmental import MaskedBertConfig, MaskedBertForQuestionAnswering
 from torch import nn
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, SubsetRandomSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
+from emmental import MaskedBertConfig, MaskedBertForQuestionAnswering
 from transformers import (
     WEIGHTS_NAME,
     AdamW,
@@ -235,6 +235,7 @@ def train(args, train_dataset, model, tokenizer, teacher=None):
     for _ in train_iterator:
         epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
+
             # Skip past any already trained steps if resuming training
             if steps_trained_in_current_epoch > 0:
                 steps_trained_in_current_epoch -= 1
@@ -302,8 +303,9 @@ def train(args, train_dataset, model, tokenizer, teacher=None):
                         input_ids=inputs["input_ids"],
                         token_type_ids=inputs["token_type_ids"],
                         attention_mask=inputs["attention_mask"],
+                        return_dict=False #JASON
                     )
-
+                    
                 loss_start = nn.functional.kl_div(
                     input=nn.functional.log_softmax(start_logits_stu / args.temperature, dim=-1),
                     target=nn.functional.softmax(start_logits_tea / args.temperature, dim=-1),
@@ -434,11 +436,12 @@ def train(args, train_dataset, model, tokenizer, teacher=None):
 
 
 def evaluate(args, model, tokenizer, prefix=""):
+    
     dataset, examples, features = load_and_cache_examples(args, tokenizer, evaluate=True, output_examples=True)
 
     if not os.path.exists(args.output_dir) and args.local_rank in [-1, 0]:
         os.makedirs(args.output_dir)
-
+    
     args.eval_batch_size = args.per_gpu_eval_batch_size * max(1, args.n_gpu)
     # Note that DistributedSampler samples randomly
     eval_sampler = SequentialSampler(dataset)
@@ -735,10 +738,8 @@ def main():
         "--max_seq_length",
         default=384,
         type=int,
-        help=(
-            "The maximum total input sequence length after WordPiece tokenization. Sequences "
-            "longer than this will be truncated, and sequences shorter than this will be padded."
-        ),
+        help="The maximum total input sequence length after WordPiece tokenization. Sequences "
+        "longer than this will be truncated, and sequences shorter than this will be padded.",
     )
     parser.add_argument(
         "--doc_stride",
@@ -750,10 +751,8 @@ def main():
         "--max_query_length",
         default=64,
         type=int,
-        help=(
-            "The maximum number of tokens for the question. Questions longer than this will "
-            "be truncated to this length."
-        ),
+        help="The maximum number of tokens for the question. Questions longer than this will "
+        "be truncated to this length.",
     )
     parser.add_argument("--do_train", action="store_true", help="Whether to run training.")
     parser.add_argument("--do_eval", action="store_true", help="Whether to run eval on the dev set.")
@@ -806,10 +805,7 @@ def main():
         "--pruning_method",
         default="topK",
         type=str,
-        help=(
-            "Pruning Method (l0 = L0 regularization, magnitude = Magnitude pruning, topK = Movement pruning,"
-            " sigmoied_threshold = Soft movement pruning)."
-        ),
+        help="Pruning Method (l0 = L0 regularization, magnitude = Magnitude pruning, topK = Movement pruning, sigmoied_threshold = Soft movement pruning).",
     )
     parser.add_argument(
         "--mask_init",
@@ -842,10 +838,7 @@ def main():
         "--teacher_type",
         default=None,
         type=str,
-        help=(
-            "Teacher type. Teacher tokenizer and student (model) tokenizer must output the same tokenization. Only for"
-            " distillation."
-        ),
+        help="Teacher type. Teacher tokenizer and student (model) tokenizer must output the same tokenization. Only for distillation.",
     )
     parser.add_argument(
         "--teacher_name_or_path",
@@ -895,27 +888,20 @@ def main():
         "--max_answer_length",
         default=30,
         type=int,
-        help=(
-            "The maximum length of an answer that can be generated. This is needed because the start "
-            "and end predictions are not conditioned on one another."
-        ),
+        help="The maximum length of an answer that can be generated. This is needed because the start "
+        "and end predictions are not conditioned on one another.",
     )
     parser.add_argument(
         "--verbose_logging",
         action="store_true",
-        help=(
-            "If true, all of the warnings related to data processing will be printed. "
-            "A number of warnings are expected for a normal SQuAD evaluation."
-        ),
+        help="If true, all of the warnings related to data processing will be printed. "
+        "A number of warnings are expected for a normal SQuAD evaluation.",
     )
     parser.add_argument(
         "--lang_id",
         default=0,
         type=int,
-        help=(
-            "language id of input for language-specific xlm models (see"
-            " tokenization_xlm.PRETRAINED_INIT_CONFIGURATION)"
-        ),
+        help="language id of input for language-specific xlm models (see tokenization_xlm.PRETRAINED_INIT_CONFIGURATION)",
     )
 
     parser.add_argument("--logging_steps", type=int, default=500, help="Log every X updates steps.")
@@ -1108,10 +1094,10 @@ def main():
             logger.info("Loading checkpoints saved during training for evaluation")
             checkpoints = [args.output_dir]
             if args.eval_all_checkpoints:
-                checkpoints = [
+                checkpoints = list(
                     os.path.dirname(c)
                     for c in sorted(glob.glob(args.output_dir + "/**/" + WEIGHTS_NAME, recursive=True))
-                ]
+                )
 
         else:
             logger.info("Loading checkpoint %s for evaluation", args.model_name_or_path)
@@ -1128,7 +1114,7 @@ def main():
             # Evaluate
             result = evaluate(args, model, tokenizer, prefix=global_step)
 
-            result = {k + ("_{}".format(global_step) if global_step else ""): v for k, v in result.items()}
+            result = dict((k + ("_{}".format(global_step) if global_step else ""), v) for k, v in result.items())
             results.update(result)
 
     logger.info("Results: {}".format(results))

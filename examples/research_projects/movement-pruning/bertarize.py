@@ -16,13 +16,19 @@ Once a model has been fine-pruned, the weights that are masked during the forwar
 For instance, once the a model from the :class:`~emmental.MaskedBertForSequenceClassification` is trained, it can be saved (and then loaded)
 as a standard :class:`~transformers.BertForSequenceClassification`.
 """
-
+import torch.nn.functional as F
 import argparse
 import os
 import shutil
 
 import torch
+
 from emmental.modules import MagnitudeBinarizer, ThresholdBinarizer, TopKBinarizer
+
+def expand_mask_(mask, mask_block_rows, mask_block_cols):
+    mask = torch.repeat_interleave(mask, mask_block_rows, dim=0)
+    mask = torch.repeat_interleave(mask, mask_block_cols, dim=1)
+    return mask
 
 
 def main(args):
@@ -65,7 +71,18 @@ def main(args):
                 prefix_ = name[:-6]
                 scores = model[f"{prefix_}mask_scores"]
                 mask = ThresholdBinarizer.apply(scores, threshold, True)
-                pruned_model[name] = tensor * mask
+                print(tensor.shape)
+                print(mask.shape)
+                mask = expand_mask_(mask, 3, 20)
+                original_shape = tensor.shape
+                if original_shape[-1]%20 ==0:
+                    pad = 0
+                else:
+                    pad = 20-original_shape[-1]%20
+                padded_tensor = F.pad(tensor, (0,pad))
+                apply_mask = mask * padded_tensor
+
+                pruned_model[name] = apply_mask[:original_shape[0], :original_shape[1]]
                 print(f"Pruned layer {name}")
             elif pruning_method == "l0":
                 if "mask_scores" in name:
@@ -102,10 +119,7 @@ if __name__ == "__main__":
         choices=["l0", "magnitude", "topK", "sigmoied_threshold"],
         type=str,
         required=True,
-        help=(
-            "Pruning Method (l0 = L0 regularization, magnitude = Magnitude pruning, topK = Movement pruning,"
-            " sigmoied_threshold = Soft movement pruning)"
-        ),
+        help="Pruning Method (l0 = L0 regularization, magnitude = Magnitude pruning, topK = Movement pruning, sigmoied_threshold = Soft movement pruning)",
     )
     parser.add_argument(
         "--threshold",
