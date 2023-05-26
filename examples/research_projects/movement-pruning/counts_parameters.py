@@ -19,6 +19,7 @@ import argparse
 import os
 
 import torch
+
 from emmental.modules import ThresholdBinarizer, TopKBinarizer
 
 
@@ -31,7 +32,9 @@ def main(args):
 
     remaining_count = 0  # Number of remaining (not pruned) params in the encoder
     encoder_count = 0  # Number of params in the encoder
-
+    #for name, param in st.items():
+    #    if "mask_scores" in name:
+    #        print(param.shape)
     print("name".ljust(60, " "), "Remaining Weights %", "Remaining Weight")
     for name, param in st.items():
         if "encoder" not in name:
@@ -50,7 +53,7 @@ def main(args):
                 mask_ones = (mask > 0.0).sum().item()
             else:
                 raise ValueError("Unknown pruning method")
-            remaining_count += mask_ones
+            remaining_count += mask_ones * 60 #JASON
             print(name.ljust(60, " "), str(round(100 * mask_ones / param.numel(), 3)).ljust(20, " "), str(mask_ones))
         else:
             encoder_count += param.numel()
@@ -58,6 +61,8 @@ def main(args):
                 remaining_count += param.numel()
 
     print("")
+    print("Remaining Count: ", remaining_count)
+    print("Encoder Count: ", encoder_count)
     print("Remaining Weights (global) %: ", 100 * remaining_count / encoder_count)
 
 
@@ -69,20 +74,15 @@ if __name__ == "__main__":
         choices=["l0", "topK", "sigmoied_threshold"],
         type=str,
         required=True,
-        help=(
-            "Pruning Method (l0 = L0 regularization, topK = Movement pruning, sigmoied_threshold = Soft movement"
-            " pruning)"
-        ),
+        help="Pruning Method (l0 = L0 regularization, topK = Movement pruning, sigmoied_threshold = Soft movement pruning)",
     )
     parser.add_argument(
         "--threshold",
         type=float,
         required=False,
-        help=(
-            "For `topK`, it is the level of remaining weights (in %) in the fine-pruned model."
-            "For `sigmoied_threshold`, it is the threshold \tau against which the (sigmoied) scores are compared."
-            "Not needed for `l0`"
-        ),
+        help="For `topK`, it is the level of remaining weights (in %) in the fine-pruned model."
+        "For `sigmoied_threshold`, it is the threshold \tau against which the (sigmoied) scores are compared."
+        "Not needed for `l0`",
     )
     parser.add_argument(
         "--serialization_dir",
