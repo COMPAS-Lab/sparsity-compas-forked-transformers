@@ -266,8 +266,9 @@ def my_float_to_bfp(t,  mant_bits, vec_size, entire = 0, epsilon = 6e-5, roundin
         reshaped_t = reshaped_t/interval
         rounded = round_tensor(reshaped_t, rounding_mode, device)
         rounded *= interval
+        rounded = torch.max(rounded, -max_v)
         
-        result = torch.min(torch.max(rounded, -max_v), max_v).reshape(padded_t_shape)
+        result = torch.min(rounded, max_v).reshape(padded_t_shape)
         result = result[..., :-pad]
         #To ensure that there is no underflow or overflow
     return result
@@ -300,8 +301,9 @@ class BFPLinear(nn.Linear):
         
         if toggle:
             bfp_input = convert_bfp(input, mant_bits, width_tile_size, entire = entire, rounding_mode=rounding_mode, device=device)
-            bfp_weight = convert_bfp(self.weight, mant_bits, width_tile_size, entire = entire, rounding_mode=rounding_mode, device=device)
-            result = nn.functional.linear(bfp_input, bfp_weight, self.bias)
+            # bfp_weight = convert_bfp(self.weight, mant_bits, width_tile_size, entire = entire, rounding_mode=rounding_mode, device=device)
+            # result = nn.functional.linear(bfp_input, bfp_weight, self.bias)
+            result = nn.functional.linear(bfp_input, self.weight, self.bias)
         else:
             result = nn.functional.linear(input, self.weight, self.bias)
 

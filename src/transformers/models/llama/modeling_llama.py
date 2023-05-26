@@ -32,7 +32,8 @@ from ...modeling_outputs import BaseModelOutputWithPast, CausalLMOutputWithPast,
 from ...modeling_utils import PreTrainedModel
 from ...utils import add_start_docstrings, add_start_docstrings_to_model_forward, logging, replace_return_docstrings
 from .configuration_llama import LlamaConfig
-
+from ...bfp import bfp_ops
+from ...utils.analyze_sparsity import get_mat_sparsity
 
 logger = logging.get_logger(__name__)
 
@@ -194,12 +195,12 @@ class LlamaMLP(nn.Module):
         self.pretraining_tp = config.pretraining_tp
         self.hidden_size = config.hidden_size
         self.intermediate_size = config.intermediate_size
-        self.gate_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
-        self.up_proj = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
-        self.down_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=False)
+        self.gate_proj =  bfp_ops.BFPLinear(self.hidden_size, self.intermediate_size, bias=False)
+        self.up_proj =  bfp_ops.BFPLinear(self.hidden_size, self.intermediate_size, bias=False)
+        self.down_proj =  bfp_ops.BFPLinear(self.intermediate_size, self.hidden_size, bias=False)
         self.act_fn = ACT2FN[config.hidden_act]
 
-    def forward(self, x):
+    def forward(self, x, mant_bits, vec_size, toggle=False, entire=1):
         if self.pretraining_tp > 1:
             slice = self.intermediate_size // self.pretraining_tp
             gate_proj_slices = self.gate_proj.weight.split(slice, dim=0)
@@ -213,7 +214,12 @@ class LlamaMLP(nn.Module):
             down_proj = [F.linear(intermediate_states[i], down_proj_slices[i]) for i in range(self.pretraining_tp)]
             down_proj = sum(down_proj)
         else:
-            down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
+            gated = self.gate_proj(x, mant_bits, vec_size, toggle=toggle, entire=entire)
+            up_projed = self.up_proj(x, mant_bits, vec_size, toggle=toggle, entire=entire)
+            return self.down_proj(
+                self.act_fn(gated) * up_projed, 
+                mant_bits, vec_size, toggle=toggle, entire=entire
+            )
 
         return down_proj
 
@@ -228,7 +234,6 @@ def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
         return hidden_states
     hidden_states = hidden_states[:, :, None, :, :].expand(batch, num_key_value_heads, n_rep, slen, head_dim)
     return hidden_states.reshape(batch, num_key_value_heads * n_rep, slen, head_dim)
-
 
 class LlamaAttention(nn.Module):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
@@ -249,10 +254,11 @@ class LlamaAttention(nn.Module):
                 f"hidden_size must be divisible by num_heads (got `hidden_size`: {self.hidden_size}"
                 f" and `num_heads`: {self.num_heads})."
             )
-        self.q_proj = nn.Linear(self.hidden_size, self.num_heads * self.head_dim, bias=False)
-        self.k_proj = nn.Linear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=False)
-        self.v_proj = nn.Linear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=False)
-        self.o_proj = nn.Linear(self.num_heads * self.head_dim, self.hidden_size, bias=False)
+        
+        self.q_proj = bfp_ops.BFPLinear(self.hidden_size, self.num_heads * self.head_dim, bias=False)
+        self.k_proj = bfp_ops.BFPLinear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=False)
+        self.v_proj = bfp_ops.BFPLinear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=False)
+        self.o_proj = bfp_ops.BFPLinear(self.num_heads * self.head_dim, self.hidden_size, bias=False)
         self._init_rope()
 
     def _init_rope(self):
@@ -283,6 +289,12 @@ class LlamaAttention(nn.Module):
         past_key_value: Optional[Tuple[torch.Tensor]] = None,
         output_attentions: bool = False,
         use_cache: bool = False,
+
+        # bfp conversion
+        mant_bits = 4,
+        vec_size = 20,
+        toggle = False,
+        entire = 0,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         bsz, q_len, _ = hidden_states.size()
 
@@ -302,9 +314,9 @@ class LlamaAttention(nn.Module):
             value_states = torch.cat(value_states, dim=-1)
 
         else:
-            query_states = self.q_proj(hidden_states)
-            key_states = self.k_proj(hidden_states)
-            value_states = self.v_proj(hidden_states)
+            query_states = self.q_proj(hidden_states, mant_bits, vec_size, toggle = toggle, entire=entire)
+            key_states = self.k_proj(hidden_states, mant_bits, vec_size, toggle = toggle, entire=entire)
+            value_states = self.v_proj(hidden_states, mant_bits, vec_size, toggle = toggle, entire=entire)
 
         query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
         key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
@@ -327,7 +339,13 @@ class LlamaAttention(nn.Module):
         key_states = repeat_kv(key_states, self.num_key_value_groups)
         value_states = repeat_kv(value_states, self.num_key_value_groups)
 
-        attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
+        BFP_query_states = bfp_ops.convert_bfp(query_states, 4, vec_size, entire=entire)
+        BFP_key_states = bfp_ops.convert_bfp(key_states, 4, vec_size, entire=entire)
+        
+        if toggle:
+            attn_weights = torch.matmul(BFP_query_states, BFP_key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
+        else:
+            attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
 
         if attn_weights.size() != (bsz, self.num_heads, q_len, kv_seq_len):
             raise ValueError(
@@ -344,7 +362,16 @@ class LlamaAttention(nn.Module):
 
         # upcast attention to fp32
         attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
-        attn_output = torch.matmul(attn_weights, value_states)
+        # apply static pruning
+        # attn_weights = torch.where(attn_weights>2e-3, attn_weights, 0.)
+        if toggle:
+            attn_weights = bfp_ops.convert_bfp(attn_weights, 4, vec_size, entire=entire)
+
+        bfp_values = bfp_ops.convert_bfp(value_states, 4, vec_size, entire=entire)
+        if toggle:
+            attn_output = torch.matmul(attn_weights, bfp_values)
+        else:
+            attn_output = torch.matmul(attn_weights, value_states)
 
         if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
             raise ValueError(
@@ -360,7 +387,7 @@ class LlamaAttention(nn.Module):
             o_proj_slices = self.o_proj.weight.split(self.hidden_size // self.pretraining_tp, dim=1)
             attn_output = sum([F.linear(attn_output[i], o_proj_slices[i]) for i in range(self.pretraining_tp)])
         else:
-            attn_output = self.o_proj(attn_output)
+            attn_output = self.o_proj(attn_output, mant_bits, vec_size, toggle=toggle, entire=entire)
 
         if not output_attentions:
             attn_weights = None
@@ -412,14 +439,25 @@ class LlamaDecoderLayer(nn.Module):
             past_key_value=past_key_value,
             output_attentions=output_attentions,
             use_cache=use_cache,
+        
+            mant_bits = 4,
+            vec_size = 40,
+            toggle = False,
+            entire = 0,
         )
         hidden_states = residual + hidden_states
 
         # Fully Connected
         residual = hidden_states
         hidden_states = self.post_attention_layernorm(hidden_states)
-        hidden_states = self.mlp(hidden_states)
+        hidden_states = self.mlp(hidden_states, mant_bits=4, vec_size=40, toggle=False, entire=0)
         hidden_states = residual + hidden_states
+
+        # bfp conversion
+        # bfp_cell = 80
+        # hidden_states = bfp_ops.convert_bfp(hidden_states, 4, bfp_cell)
+        # hstates_sparsity = get_mat_sparsity(hidden_states)
+        # logger.info(f"hidden states sparsity: {hstates_sparsity:.4f}")
 
         outputs = (hidden_states,)
 
