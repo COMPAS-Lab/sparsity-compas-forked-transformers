@@ -3,7 +3,7 @@ name: Doctests
 on:
   push:
     branches:
-      - doctest*
+      - run_update_tf_pin
   repository_dispatch:
   schedule:
     - cron: "17 2 * * *"

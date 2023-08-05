@@ -3,7 +3,7 @@ name: Build docker images (scheduled)
 on:
   push:
     branches:
-      - run_update_tf_pin
+      - run_update_tf_pinxxx
   repository_dispatch:
   workflow_call:
     inputs:
