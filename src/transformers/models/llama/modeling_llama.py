@@ -363,7 +363,7 @@ class LlamaAttention(nn.Module):
         # upcast attention to fp32
         attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
         # apply static pruning
-        # attn_weights = torch.where(attn_weights>2e-3, attn_weights, 0.)
+        # attn_weights = torch.where(attn_weights>1e-2, attn_weights, 0.)
         if toggle:
             attn_weights = bfp_ops.convert_bfp(attn_weights, 4, vec_size, entire=entire)
 
@@ -442,7 +442,7 @@ class LlamaDecoderLayer(nn.Module):
         
             mant_bits = 4,
             vec_size = 40,
-            toggle = False,
+            toggle = True,
             entire = 0,
         )
         hidden_states = residual + hidden_states
