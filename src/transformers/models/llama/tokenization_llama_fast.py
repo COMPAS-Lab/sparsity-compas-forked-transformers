@@ -14,7 +14,7 @@
 # limitations under the License.
 import os
 from shutil import copyfile
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from tokenizers import processors
 
@@ -22,6 +22,9 @@ from ...tokenization_utils_fast import PreTrainedTokenizerFast
 from ...utils import is_sentencepiece_available, logging
 from ...utils.versions import require_version
 
+
+if TYPE_CHECKING:
+    from transformers.pipelines.conversational import Conversation
 
 require_version("tokenizers>=0.13.3")
 

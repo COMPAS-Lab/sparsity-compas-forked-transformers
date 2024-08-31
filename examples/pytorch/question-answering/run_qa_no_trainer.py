@@ -471,6 +471,12 @@ def main():
             "question_wsep": a["question"] + sep_token_str, 
             "context_wsep": a["context"] + sep_token_str})
 
+    # append sep token to question and contexts
+    raw_datasets = raw_datasets = raw_datasets.map( \
+        lambda a: {
+            "question_wsep": a["question"] + sep_token_str, 
+            "context_wsep": a["context"] + sep_token_str})
+
     column_names = raw_datasets["train"].column_names
 
     if tokenizer.sep_token is not None:

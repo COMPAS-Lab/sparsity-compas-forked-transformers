@@ -92,7 +92,6 @@ NUM_SHARDS = {
 
 CONTEXT_LENGTH_FOR_VERSION = {"3.1": 131072, "3": 8192, "2": 4096, "1": 2048}
 
-
 def compute_intermediate_size(n, ffn_dim_multiplier=1, multiple_of=256):
     return multiple_of * ((int(ffn_dim_multiplier * int(8 * n / 3)) + multiple_of - 1) // multiple_of)
 
@@ -143,6 +142,15 @@ def write_model(
     else:  # compatibility with other checkpoints
         num_key_value_heads = n_heads
         num_key_value_heads_per_shard = n_heads_per_shard
+        key_value_dim = dim
+
+    if "n_kv_heads" in params:
+        num_key_value_heads = params["n_kv_heads"]  # for GQA / MQA
+        num_local_key_value_heads = n_heads_per_shard // num_key_value_heads
+        key_value_dim = dim // num_key_value_heads
+    else:  # compatibility with other checkpoints
+        num_key_value_heads = n_heads
+        num_local_key_value_heads = n_heads_per_shard
         key_value_dim = dim
 
     # permute for sliced rotary
