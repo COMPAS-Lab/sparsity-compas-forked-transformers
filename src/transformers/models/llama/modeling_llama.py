@@ -49,6 +49,8 @@ from ...utils import (
 )
 from .configuration_llama import LlamaConfig
 from ...bfp import bfp_ops
+from pathlib import Path
+import json
 from ...utils.analyze_sparsity import get_mat_sparsity
 
 logger = logging.get_logger(__name__)
@@ -377,12 +379,11 @@ class LlamaAttention(nn.Module):
         cache_position: Optional[torch.LongTensor] = None,
         position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,  # will become mandatory in v4.45
         # bfp conversion
-        mant_bits = 4,
-        vec_size = 20,
-        toggle = False,
-        entire = 0,
+        mant_bits = 4, vec_size = 20, toggle = False, entire = 0,
+        # block pruning
+        block_prune = False,
         **kwargs,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+    ) -> Tuple:
         bsz, q_len, _ = hidden_states.size()
 
         if self.config.pretraining_tp > 1:
@@ -403,9 +404,9 @@ class LlamaAttention(nn.Module):
             value_states = torch.cat(value_states, dim=-1)
 
         else:
-            query_states = self.q_proj(hidden_states, mant_bits, vec_size, toggle = toggle, entire=entire)
-            key_states = self.k_proj(hidden_states, mant_bits, vec_size, toggle = toggle, entire=entire)
-            value_states = self.v_proj(hidden_states, mant_bits, vec_size, toggle = toggle, entire=entire)
+            query_states = self.q_proj(hidden_states, mant_bits, vec_size, toggle = False, entire=0)
+            key_states = self.k_proj(hidden_states, mant_bits, vec_size, toggle = False, entire=0)
+            value_states = self.v_proj(hidden_states, mant_bits, vec_size, toggle = False, entire=0)
 
         query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
         key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
@@ -430,14 +431,7 @@ class LlamaAttention(nn.Module):
 
         key_states = repeat_kv(key_states, self.num_key_value_groups)
         value_states = repeat_kv(value_states, self.num_key_value_groups)
-
-        BFP_query_states = bfp_ops.convert_bfp(query_states, 4, vec_size, entire=entire)
-        BFP_key_states = bfp_ops.convert_bfp(key_states, 4, vec_size, entire=entire)
-        
-        if toggle:
-            attn_weights = torch.matmul(BFP_query_states, BFP_key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
-        else:
-            attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
+        attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
 
         if attention_mask is not None:  # no matter the length, we just slice it
             causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
@@ -448,14 +442,47 @@ class LlamaAttention(nn.Module):
         attn_weights = nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
         # apply static pruning
         # attn_weights = torch.where(attn_weights>1e-2, attn_weights, 0.)
-        if toggle:
-            attn_weights = bfp_ops.convert_bfp(attn_weights, 4, vec_size, entire=entire)
 
-        bfp_values = bfp_ops.convert_bfp(value_states, 4, vec_size, entire=entire)
-        if toggle:
-            attn_output = torch.matmul(attn_weights, bfp_values)
+        if attn_weights.size()[-2] == attn_weights.size()[-1]:
+            if toggle:
+                attn_weights = bfp_ops.convert_bfp(attn_weights, mant_bits, vec_size, entire=entire)
+                value_states = bfp_ops.convert_bfp(value_states, mant_bits, vec_size, entire=entire)
+
+            if block_prune:
+                seq_len = attn_weights.size()[-1]
+                block_size = vec_size
+                topk = 0
+                attn_prob_grps = torch.split(attn_weights, int(block_size), dim=-1)
+                attn_prob_grpsize = [i.size()[-1] for i in attn_prob_grps]
+                # switched to amax to score the blocks
+                summed_attn_prob_grps = [torch.sum(i, dim=-1, keepdim=True) for i in attn_prob_grps]
+                summed_attn_after_thres = [torch.where(i > (3.0 / seq_len * j), 1.0, 0.0) for i, j \
+                                        in zip(summed_attn_prob_grps, attn_prob_grpsize)]
+                if topk > 0:
+                    sorted_summed_attn_prob_grps, _ = torch.sort(torch.concatenate(summed_attn_prob_grps, dim=-1),\
+                                                                descending=True, dim=-1)
+                    thres = [sorted_summed_attn_prob_grps[:,:,:,topk:topk+1]] * len(summed_attn_prob_grps)
+
+                    attn_prob_grp_mask = [torch.where(i > j, 1.0, 0.0) for i, j \
+                                        in zip(summed_attn_prob_grps, thres)]
+                    elem_mask = [torch.concatenate([i] * j, dim = -1) for i, j \
+                                    in zip(attn_prob_grp_mask, attn_prob_grpsize)]
+                else:
+                    elem_mask = [torch.concatenate([i] * j, dim = -1) for i, j \
+                                    in zip(summed_attn_after_thres, attn_prob_grpsize)]
+                elem_mask = torch.concatenate(elem_mask, dim=-1)
+                print(f"elem mask size: {elem_mask.size()}")
+                attn_weights = torch.mul(attn_weights, elem_mask)
+
+            attn_sparsity = get_mat_sparsity(attn_weights, True, False)
+            attn_weights = attn_weights.type_as(value_states)
+            rec_attn = (attn_weights > 0.0).bool().clone().cpu()
         else:
-            attn_output = torch.matmul(attn_weights, value_states)
+            attn_weights = attn_weights.type_as(value_states)
+            attn_sparsity = -1.0
+            rec_attn = None
+
+        attn_output = torch.matmul(attn_weights, value_states)
 
         if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
             raise ValueError(
@@ -472,12 +499,12 @@ class LlamaAttention(nn.Module):
             o_proj_slices = self.o_proj.weight.split(self.hidden_size // self.config.pretraining_tp, dim=1)
             attn_output = sum([F.linear(attn_output[i], o_proj_slices[i]) for i in range(self.config.pretraining_tp)])
         else:
-            attn_output = self.o_proj(attn_output, mant_bits, vec_size, toggle=toggle, entire=entire)
+            attn_output = self.o_proj(attn_output, mant_bits, vec_size, toggle=False, entire=0)
 
         if not output_attentions:
             attn_weights = None
 
-        return attn_output, attn_weights, past_key_value
+        return attn_output, attn_weights, past_key_value, attn_sparsity, rec_attn
 
 
 class LlamaFlashAttention2(LlamaAttention):
@@ -728,7 +755,7 @@ class LlamaDecoderLayer(nn.Module):
         cache_position: Optional[torch.LongTensor] = None,
         position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,  # will become mandatory in v4.45
         **kwargs,
-    ) -> Tuple[torch.FloatTensor, Optional[Tuple[torch.FloatTensor, torch.FloatTensor]]]:
+    ) -> Tuple:
         """
         Args:
             hidden_states (`torch.FloatTensor`): input to the layer of shape `(batch, seq_len, embed_dim)`
@@ -756,7 +783,8 @@ class LlamaDecoderLayer(nn.Module):
         hidden_states = self.input_layernorm(hidden_states)
 
         # Self Attention
-        hidden_states, self_attn_weights, present_key_value = self.self_attn(
+        # TODO: set BFP and block prune here
+        hidden_states, self_attn_weights, present_key_value, spar, rec_attn = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
             position_ids=position_ids,
@@ -769,6 +797,7 @@ class LlamaDecoderLayer(nn.Module):
             vec_size = 20,
             toggle = False,
             entire = 0,
+            block_prune = True,
             **kwargs,
         )
         hidden_states = residual + hidden_states
@@ -776,7 +805,7 @@ class LlamaDecoderLayer(nn.Module):
         # Fully Connected
         residual = hidden_states
         hidden_states = self.post_attention_layernorm(hidden_states)
-        hidden_states = self.mlp(hidden_states, mant_bits=4, vec_size=40, toggle=False, entire=0)
+        hidden_states = self.mlp(hidden_states, mant_bits=4, vec_size=20, toggle=False, entire=0)
         hidden_states = residual + hidden_states
 
         # bfp conversion
@@ -793,6 +822,8 @@ class LlamaDecoderLayer(nn.Module):
         if use_cache:
             outputs += (present_key_value,)
 
+        outputs += (spar,)
+        outputs += (rec_attn,)
         return outputs
 
 
@@ -962,6 +993,7 @@ class LlamaModel(LlamaPreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
+        attn_dump_path: Optional[str] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
@@ -1015,6 +1047,7 @@ class LlamaModel(LlamaPreTrainedModel):
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
+        all_bp_attns, all_spar = [], []
 
         for decoder_layer in self.layers:
             if output_hidden_states:
@@ -1045,6 +1078,10 @@ class LlamaModel(LlamaPreTrainedModel):
                 )
 
             hidden_states = layer_outputs[0]
+            print("loutput size:" + str(len(layer_outputs)))
+            if layer_outputs[-1] is not None:
+                all_spar.append(layer_outputs[-2])
+                all_bp_attns.append(layer_outputs[-1])
 
             if use_cache:
                 next_decoder_cache = layer_outputs[2 if output_attentions else 1]
@@ -1053,6 +1090,31 @@ class LlamaModel(LlamaPreTrainedModel):
                 all_self_attns += (layer_outputs[1],)
 
         hidden_states = self.norm(hidden_states)
+
+        # save bfp attens
+        if attn_dump_path is not None:
+            attn_fp = Path(attn_dump_path + ".pt")
+            attn_profile_fp = Path(attn_dump_path + ".json")
+            attn_fp.parents[0].mkdir(parents=True, exist_ok=True)
+            print(f"get attn path {attn_fp.parent}")
+
+            if all_bp_attns:
+                print(f"saving attn to {attn_fp.parent}...")
+                # all_bp_attn = torch.squeeze(torch.stack(all_attn))
+                # torch.save(all_bp_attn, str(attn_fp))
+
+                with attn_profile_fp.open("w+", encoding="utf-8") as f:
+                    if not f.read(1):
+                        dat = {"all_elem_spar": all_spar}
+                        print(dat)
+                        f.seek(0)
+                        json.dump(dat, f, indent=2)
+                    else:
+                        existing_dat = json.load(f)
+                        existing_dat["all_elem_spar"] += all_spar
+                        # existing_dat["all_elem_diff"] += all_diff
+                        f.seek(0)
+                        json.dump(existing_dat, f, indent=2)
 
         # add hidden states from the last decoder layer
         if output_hidden_states:
@@ -1188,6 +1250,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
+        attn_dump_path: Optional[str] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
         r"""
         Args:
@@ -1232,6 +1295,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
             cache_position=cache_position,
+            attn_dump_path=attn_dump_path,
         )
 
         hidden_states = outputs[0]
@@ -1277,6 +1341,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
         cache_position=None,
         position_ids=None,
         use_cache=True,
+        attn_dump_path: Optional[str] = None, 
         **kwargs,
     ):
         # If we have cache: let's slice `input_ids` through `cache_position`, to keep only the unprocessed tokens
@@ -1334,6 +1399,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel):
                 "past_key_values": past_key_values,
                 "use_cache": use_cache,
                 "attention_mask": attention_mask,
+                "attn_dump_path": attn_dump_path,
             }
         )
         return model_inputs
