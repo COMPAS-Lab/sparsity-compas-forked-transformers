@@ -48,7 +48,11 @@ from ...utils import (
 )
 from ...utils.import_utils import is_torch_fx_available
 from .configuration_mixtral import MixtralConfig
-
+from ...bfp import bfp_ops
+from pathlib import Path
+import json
+from ...utils.analyze_sparsity import get_mat_sparsity
+import numpy as np
 
 if is_flash_attn_2_available():
     from ...modeling_flash_attention_utils import _flash_attention_forward
@@ -364,7 +368,11 @@ class MixtralAttention(nn.Module):
         output_attentions: bool = False,
         use_cache: bool = False,
         cache_position: Optional[torch.LongTensor] = None,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        # bfp conversion
+        mant_bits = 4, vec_size = 20, toggle = False, entire = 0,
+        # block_prune
+        block_prune = False,
+    ) -> Tuple:
         bsz, q_len, _ = hidden_states.size()
 
         query_states = self.q_proj(hidden_states)
@@ -410,6 +418,46 @@ class MixtralAttention(nn.Module):
         # upcast attention to fp32
         attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
         attn_weights = nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
+        
+        if attn_weights.size()[-2] == attn_weights.size()[-1]:
+            if toggle:
+                attn_weights = bfp_ops.convert_bfp(attn_weights, mant_bits, vec_size, entire=entire)
+                value_states = bfp_ops.convert_bfp(value_states, mant_bits, vec_size, entire=entire)
+
+            if block_prune:
+                seq_len = attn_weights.size()[-1]
+                block_size = vec_size
+                topk = 0
+                attn_prob_grps = torch.split(attn_weights, int(block_size), dim=-1)
+                attn_prob_grpsize = [i.size()[-1] for i in attn_prob_grps]
+                # switched to amax to score the blocks
+                summed_attn_prob_grps = [torch.sum(i, dim=-1, keepdim=True) for i in attn_prob_grps]
+                summed_attn_after_thres = [torch.where(i > (1.0 / seq_len * j), 1.0, 0.0) for i, j \
+                                        in zip(summed_attn_prob_grps, attn_prob_grpsize)]
+                if topk > 0:
+                    sorted_summed_attn_prob_grps, _ = torch.sort(torch.concatenate(summed_attn_prob_grps, dim=-1),\
+                                                                descending=True, dim=-1)
+                    thres = [sorted_summed_attn_prob_grps[:,:,:,topk:topk+1]] * len(summed_attn_prob_grps)
+
+                    attn_prob_grp_mask = [torch.where(i > j, 1.0, 0.0) for i, j \
+                                        in zip(summed_attn_prob_grps, thres)]
+                    elem_mask = [torch.concatenate([i] * j, dim = -1) for i, j \
+                                    in zip(attn_prob_grp_mask, attn_prob_grpsize)]
+                else:
+                    elem_mask = [torch.concatenate([i] * j, dim = -1) for i, j \
+                                    in zip(summed_attn_after_thres, attn_prob_grpsize)]
+                elem_mask = torch.concatenate(elem_mask, dim=-1)
+                print(f"elem mask size: {elem_mask.size()}")
+                attn_weights = torch.mul(attn_weights, elem_mask)
+
+            attn_sparsity = get_mat_sparsity(elem_mask, True, False)
+            attn_weights = attn_weights.type_as(value_states)
+            rec_attn = attn_weights.detach().clone().bool().cpu()
+        else:
+            attn_weights = attn_weights.type_as(value_states)
+            attn_sparsity = -1.0
+            rec_attn = None
+
         attn_output = torch.matmul(attn_weights, value_states)
 
         if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
@@ -426,7 +474,7 @@ class MixtralAttention(nn.Module):
         if not output_attentions:
             attn_weights = None
 
-        return attn_output, attn_weights, past_key_value
+        return attn_output, attn_weights, past_key_value, attn_sparsity, rec_attn
 
 
 # copied from transformers.models.mistral.modeling_mistral.MistralFlashAttention2 with Mistral->Mixtral
@@ -447,6 +495,10 @@ class MixtralFlashAttention2(MixtralAttention):
         output_attentions: bool = False,
         use_cache: bool = False,
         cache_position: Optional[torch.LongTensor] = None,
+        # bfp conversion
+        mant_bits = 4, vec_size = 20, toggle = False, entire = 0,
+        # block_prune
+        block_prune = False,
     ):
         bsz, q_len, _ = hidden_states.size()
 
@@ -557,7 +609,7 @@ class MixtralFlashAttention2(MixtralAttention):
         if not output_attentions:
             attn_weights = None
 
-        return attn_output, attn_weights, past_key_value
+        return attn_output, attn_weights, past_key_value, None, None
 
 
 # copied from transformers.models.mistral.modeling_mistral.MistralSdpaAttention with Mistral->Mixtral
@@ -795,7 +847,7 @@ class MixtralDecoderLayer(nn.Module):
         hidden_states = self.input_layernorm(hidden_states)
 
         # Self Attention
-        hidden_states, self_attn_weights, present_key_value = self.self_attn(
+        hidden_states, self_attn_weights, present_key_value, spar, rec_attn = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
             position_ids=position_ids,
@@ -803,6 +855,12 @@ class MixtralDecoderLayer(nn.Module):
             output_attentions=output_attentions,
             use_cache=use_cache,
             cache_position=cache_position,
+            mant_bits = 4,
+            vec_size = 20,
+            toggle = False,
+            entire = 0,
+            block_prune = True,
+            **kwargs,
         )
         hidden_states = residual + hidden_states
 
@@ -823,6 +881,8 @@ class MixtralDecoderLayer(nn.Module):
         if output_router_logits:
             outputs += (router_logits,)
 
+        outputs += (spar,)
+        outputs += (rec_attn,)
         return outputs
 
 
@@ -992,6 +1052,7 @@ class MixtralModel(MixtralPreTrainedModel):
         output_router_logits: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
+        attn_dump_path: Optional[str] = None,
     ) -> Union[Tuple, MoeModelOutputWithPast]:
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_router_logits = (
@@ -1047,6 +1108,7 @@ class MixtralModel(MixtralPreTrainedModel):
         all_self_attns = () if output_attentions else None
         all_router_logits = () if output_router_logits else None
         next_decoder_cache = None
+        all_bp_attns, all_spar = [], []
 
         for decoder_layer in self.layers:
             if output_hidden_states:
@@ -1077,6 +1139,9 @@ class MixtralModel(MixtralPreTrainedModel):
                 )
 
             hidden_states = layer_outputs[0]
+            if layer_outputs[-1] is not None:
+                all_spar.append(layer_outputs[-2])
+                all_bp_attns.append(layer_outputs[-1])
 
             if use_cache:
                 next_decoder_cache = layer_outputs[2 if output_attentions else 1]
@@ -1088,6 +1153,31 @@ class MixtralModel(MixtralPreTrainedModel):
                 all_router_logits += (layer_outputs[-1],)
 
         hidden_states = self.norm(hidden_states)
+
+        # save bfp attens
+        if attn_dump_path is not None:
+            attn_fp = Path(attn_dump_path + ".pt")
+            attn_profile_fp = Path(attn_dump_path + ".json")
+            attn_fp.parents[0].mkdir(parents=True, exist_ok=True)
+            print(f"get attn path {attn_fp.parent}")
+
+            if all_bp_attns:
+                print(f"saving attn to {attn_fp.parent}...")
+                all_bp_attn = torch.squeeze(torch.stack(all_bp_attns))
+                # torch.save(all_bp_attn, str(attn_fp))
+
+            with attn_profile_fp.open("w+", encoding="utf-8") as f:
+                if not f.read(1):
+                    dat = {"all_elem_spar": all_spar, "seq_len": all_bp_attn.size(dim=-2)}
+                    print(dat)
+                    f.seek(0)
+                    json.dump(dat, f, indent=2)
+                else:
+                    existing_dat = json.load(f)
+                    existing_dat["all_elem_spar"] += all_spar
+                    # existing_dat["all_elem_diff"] += all_diff
+                    f.seek(0)
+                    json.dump(existing_dat, f, indent=2)
 
         # add hidden states from the last decoder layer
         if output_hidden_states:
@@ -1233,6 +1323,7 @@ class MixtralForCausalLM(MixtralPreTrainedModel):
         output_router_logits: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
+        attn_dump_path: Optional[str] = None,
     ) -> Union[Tuple, MoeCausalLMOutputWithPast]:
         r"""
         Args:
@@ -1283,6 +1374,7 @@ class MixtralForCausalLM(MixtralPreTrainedModel):
             output_router_logits=output_router_logits,
             return_dict=return_dict,
             cache_position=cache_position,
+            attn_dump_path=attn_dump_path,
         )
 
         hidden_states = outputs[0]
@@ -1339,6 +1431,7 @@ class MixtralForCausalLM(MixtralPreTrainedModel):
         output_router_logits=False,
         position_ids=None,
         use_cache=True,
+        attn_dump_path: Optional[str] = None, 
         **kwargs,
     ):
         # If we have cache: let's slice `input_ids` through `cache_position`, to keep only the unprocessed tokens
@@ -1371,6 +1464,7 @@ class MixtralForCausalLM(MixtralPreTrainedModel):
                 "use_cache": use_cache,
                 "attention_mask": attention_mask,
                 "output_router_logits": output_router_logits,
+                "attn_dump_path": attn_dump_path,
             }
         )
         return model_inputs

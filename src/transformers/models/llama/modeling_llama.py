@@ -286,12 +286,12 @@ class LlamaMLP(nn.Module):
         self.config = config
         self.hidden_size = config.hidden_size
         self.intermediate_size = config.intermediate_size
-        self.gate_proj =  bfp_ops.BFPLinear(self.hidden_size, self.intermediate_size, bias=False)
-        self.up_proj =  bfp_ops.BFPLinear(self.hidden_size, self.intermediate_size, bias=False)
-        self.down_proj =  bfp_ops.BFPLinear(self.intermediate_size, self.hidden_size, bias=False)
+        self.gate_proj =  nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
+        self.up_proj =  nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
+        self.down_proj =  nn.Linear(self.intermediate_size, self.hidden_size, bias=False)
         self.act_fn = ACT2FN[config.hidden_act]
 
-    def forward(self, x, mant_bits, vec_size, toggle=False, entire=1):
+    def forward(self, x):
         if self.config.pretraining_tp > 1:
             slice = self.intermediate_size // self.config.pretraining_tp
             gate_proj_slices = self.gate_proj.weight.split(slice, dim=0)
@@ -309,11 +309,10 @@ class LlamaMLP(nn.Module):
             ]
             down_proj = sum(down_proj)
         else:
-            gated = self.gate_proj(x, mant_bits, vec_size, toggle=toggle, entire=entire)
-            up_projed = self.up_proj(x, mant_bits, vec_size, toggle=toggle, entire=entire)
+            gated = self.gate_proj(x)
+            up_projed = self.up_proj(x)
             return self.down_proj(
-                self.act_fn(gated) * up_projed, 
-                mant_bits, vec_size, toggle=toggle, entire=entire
+                self.act_fn(gated) * up_projed
             )
 
         return down_proj
@@ -360,10 +359,14 @@ class LlamaAttention(nn.Module):
                 f" and `num_heads`: {self.num_heads})."
             )
 
-        self.q_proj = nn.BFPLinear(self.hidden_size, self.num_heads * self.head_dim, bias=config.attention_bias)
-        self.k_proj = nn.BFPLinear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=config.attention_bias)
-        self.v_proj = nn.BFPLinear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=config.attention_bias)
-        self.o_proj = nn.BFPLinear(self.hidden_size, self.hidden_size, bias=config.attention_bias)
+        self.q_proj = nn.Linear(self.hidden_size, self.num_heads * self.head_dim, bias=config.attention_bias)
+        self.k_proj = nn.Linear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=config.attention_bias)
+        self.v_proj = nn.Linear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=config.attention_bias)
+        self.o_proj = nn.Linear(self.hidden_size, self.hidden_size, bias=config.attention_bias)
+        # self.q_proj = bfp_ops.BFPLinear(self.hidden_size, self.num_heads * self.head_dim, bias=config.attention_bias)
+        # self.k_proj = bfp_ops.BFPLinear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=config.attention_bias)
+        # self.v_proj = bfp_ops.BFPLinear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=config.attention_bias)
+        # self.o_proj = bfp_ops.BFPLinear(self.hidden_size, self.hidden_size, bias=config.attention_bias)
 
         # TODO (joao): remove in v4.45 (RoPE is computed in the model, not in the decoder layers)
         self.rotary_emb = LlamaRotaryEmbedding(config=self.config)
@@ -404,9 +407,9 @@ class LlamaAttention(nn.Module):
             value_states = torch.cat(value_states, dim=-1)
 
         else:
-            query_states = self.q_proj(hidden_states, mant_bits, vec_size, toggle = False, entire=0)
-            key_states = self.k_proj(hidden_states, mant_bits, vec_size, toggle = False, entire=0)
-            value_states = self.v_proj(hidden_states, mant_bits, vec_size, toggle = False, entire=0)
+            query_states = self.q_proj(hidden_states)
+            key_states = self.k_proj(hidden_states)
+            value_states = self.v_proj(hidden_states)
 
         query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
         key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
@@ -448,6 +451,7 @@ class LlamaAttention(nn.Module):
                 attn_weights = bfp_ops.convert_bfp(attn_weights, mant_bits, vec_size, entire=entire)
                 value_states = bfp_ops.convert_bfp(value_states, mant_bits, vec_size, entire=entire)
 
+            elem_mask = None
             if block_prune:
                 seq_len = attn_weights.size()[-1]
                 block_size = vec_size
@@ -471,12 +475,14 @@ class LlamaAttention(nn.Module):
                     elem_mask = [torch.concatenate([i] * j, dim = -1) for i, j \
                                     in zip(summed_attn_after_thres, attn_prob_grpsize)]
                 elem_mask = torch.concatenate(elem_mask, dim=-1)
-                print(f"elem mask size: {elem_mask.size()}")
+                # print(f"elem mask size: {elem_mask.size()}")
                 attn_weights = torch.mul(attn_weights, elem_mask)
+                
+            attn_sparsity = get_mat_sparsity(elem_mask, True, False)
+            rec_attn = attn_weights.clone().cpu()
 
-            attn_sparsity = get_mat_sparsity(attn_weights, True, False)
             attn_weights = attn_weights.type_as(value_states)
-            rec_attn = (attn_weights > 0.0).bool().clone().cpu()
+            # rec_attn = (attn_weights > 0.0).bool().clone().cpu()
         else:
             attn_weights = attn_weights.type_as(value_states)
             attn_sparsity = -1.0
@@ -499,7 +505,7 @@ class LlamaAttention(nn.Module):
             o_proj_slices = self.o_proj.weight.split(self.hidden_size // self.config.pretraining_tp, dim=1)
             attn_output = sum([F.linear(attn_output[i], o_proj_slices[i]) for i in range(self.config.pretraining_tp)])
         else:
-            attn_output = self.o_proj(attn_output, mant_bits, vec_size, toggle=False, entire=0)
+            attn_output = self.o_proj(attn_output)
 
         if not output_attentions:
             attn_weights = None
@@ -532,6 +538,10 @@ class LlamaFlashAttention2(LlamaAttention):
         use_cache: bool = False,
         cache_position: Optional[torch.LongTensor] = None,
         position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,  # will become mandatory in v4.45
+        # bfp conversion
+        mant_bits = 4, vec_size = 20, toggle = False, entire = 0,
+        # block pruning
+        block_prune = False,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         if isinstance(past_key_value, StaticCache):
             raise ValueError(
@@ -624,7 +634,7 @@ class LlamaFlashAttention2(LlamaAttention):
         if not output_attentions:
             attn_weights = None
 
-        return attn_output, attn_weights, past_key_value
+        return attn_output, attn_weights, past_key_value, None, None
 
 
 class LlamaSdpaAttention(LlamaAttention):
@@ -782,6 +792,7 @@ class LlamaDecoderLayer(nn.Module):
 
         hidden_states = self.input_layernorm(hidden_states)
 
+        spar, rec_attn = None, None
         # Self Attention
         # TODO: set BFP and block prune here
         hidden_states, self_attn_weights, present_key_value, spar, rec_attn = self.self_attn(
@@ -805,7 +816,7 @@ class LlamaDecoderLayer(nn.Module):
         # Fully Connected
         residual = hidden_states
         hidden_states = self.post_attention_layernorm(hidden_states)
-        hidden_states = self.mlp(hidden_states, mant_bits=4, vec_size=20, toggle=False, entire=0)
+        hidden_states = self.mlp(hidden_states)
         hidden_states = residual + hidden_states
 
         # bfp conversion
@@ -1078,7 +1089,6 @@ class LlamaModel(LlamaPreTrainedModel):
                 )
 
             hidden_states = layer_outputs[0]
-            print("loutput size:" + str(len(layer_outputs)))
             if layer_outputs[-1] is not None:
                 all_spar.append(layer_outputs[-2])
                 all_bp_attns.append(layer_outputs[-1])
@@ -1099,13 +1109,13 @@ class LlamaModel(LlamaPreTrainedModel):
             print(f"get attn path {attn_fp.parent}")
 
             if all_bp_attns:
-                print(f"saving attn to {attn_fp.parent}...")
-                # all_bp_attn = torch.squeeze(torch.stack(all_attn))
+                # print(f"saving attn to {attn_fp.parent}...")
+                all_bp_attn = torch.squeeze(torch.stack(all_bp_attns))
                 # torch.save(all_bp_attn, str(attn_fp))
 
                 with attn_profile_fp.open("w+", encoding="utf-8") as f:
                     if not f.read(1):
-                        dat = {"all_elem_spar": all_spar}
+                        dat = {"all_elem_spar": all_spar, "seq_len": all_bp_attn.size(dim=-2)}
                         print(dat)
                         f.seek(0)
                         json.dump(dat, f, indent=2)
@@ -1449,6 +1459,7 @@ class LlamaForSequenceClassification(LlamaPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        attn_dump_path: Optional[str] = None,
     ) -> Union[Tuple, SequenceClassifierOutputWithPast]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1468,6 +1479,7 @@ class LlamaForSequenceClassification(LlamaPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            attn_dump_path=attn_dump_path,
         )
         hidden_states = transformer_outputs[0]
         logits = self.score(hidden_states)
@@ -1566,6 +1578,7 @@ class LlamaForQuestionAnswering(LlamaPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        attn_dump_path: Optional[str] = None,
     ) -> Union[Tuple, QuestionAnsweringModelOutput]:
         r"""
         start_positions (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1588,6 +1601,7 @@ class LlamaForQuestionAnswering(LlamaPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            attn_dump_path=attn_dump_path,
         )
 
         sequence_output = outputs[0]
@@ -1670,6 +1684,7 @@ class LlamaForTokenClassification(LlamaPreTrainedModel):
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
+        attn_dump_path: Optional[str] = None,
     ) -> Union[Tuple, TokenClassifierOutput]:
         r"""
         labels (`torch.LongTensor` of shape `(batch_size,)`, *optional*):
@@ -1689,6 +1704,7 @@ class LlamaForTokenClassification(LlamaPreTrainedModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
+            attn_dump_path=attn_dump_path,
         )
         sequence_output = outputs[0]
         sequence_output = self.dropout(sequence_output)

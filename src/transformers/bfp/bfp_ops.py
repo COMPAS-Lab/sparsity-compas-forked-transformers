@@ -248,20 +248,21 @@ def my_float_to_bfp(t,  mant_bits, vec_size, entire = 0, epsilon = 6e-5, roundin
     
     # usually do this    
     else:
-        if t.shape[-1]%vec_size == 0:
+        copied_t = t.detach().clone().to(device)
+        if copied_t.shape[-1]%vec_size == 0:
             pad = 0
         else:
             pad = vec_size - t.shape[-1]%vec_size
-        pad = vec_size - t.shape[-1]%vec_size
-        padded_t = F.pad(t, (0, pad))
+        pad = vec_size - copied_t.shape[-1]%vec_size
+        padded_t = F.pad(t, (0, pad)).to(device)
         padded_t_shape = padded_t.shape
         reshaped_t = padded_t.reshape(-1, vec_size)
         
         exp = get_exponent(reshaped_t, epsilon)
     
-        interval = torch.pow(2.0, exp-mant_bits)
+        interval = torch.pow(2.0, exp-mant_bits).to(device)
         #The maximum representable value with exp
-        max_v = torch.pow(2.0, exp) - interval
+        max_v = (torch.pow(2.0, exp) - interval).to(device)
         # To ensure that we preserve the interval
         reshaped_t = reshaped_t/interval
         rounded = round_tensor(reshaped_t, rounding_mode, device)
@@ -270,6 +271,7 @@ def my_float_to_bfp(t,  mant_bits, vec_size, entire = 0, epsilon = 6e-5, roundin
         
         result = torch.min(rounded, max_v).reshape(padded_t_shape)
         result = result[..., :-pad]
+        result = result.to(t.device)
         #To ensure that there is no underflow or overflow
     return result
     
@@ -301,9 +303,9 @@ class BFPLinear(nn.Linear):
         
         if toggle:
             bfp_input = convert_bfp(input, mant_bits, width_tile_size, entire = entire, rounding_mode=rounding_mode, device=device)
-            # bfp_weight = convert_bfp(self.weight, mant_bits, width_tile_size, entire = entire, rounding_mode=rounding_mode, device=device)
-            # result = nn.functional.linear(bfp_input, bfp_weight, self.bias)
-            result = nn.functional.linear(bfp_input, self.weight, self.bias)
+            bfp_weight = convert_bfp(self.weight, mant_bits, width_tile_size, entire = entire, rounding_mode=rounding_mode, device=device)
+            result = nn.functional.linear(bfp_input, bfp_weight, self.bias)
+            # result = nn.functional.linear(bfp_input, self.weight, self.bias)
         else:
             result = nn.functional.linear(input, self.weight, self.bias)
 
