@@ -26,6 +26,8 @@ import torch.utils.checkpoint
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
+import numpy as np
+
 from ...activations import ACT2FN
 from ...cache_utils import Cache, DynamicCache, StaticCache
 from ...modeling_attn_mask_utils import AttentionMaskConverter
@@ -51,7 +53,7 @@ from .configuration_llama import LlamaConfig
 from ...bfp import bfp_ops
 from pathlib import Path
 import json
-from ...utils.analyze_sparsity import get_mat_sparsity
+from ...utils.analyze_sparsity import get_mat_sparsity, to_bco_format
 
 logger = logging.get_logger(__name__)
 
@@ -446,10 +448,13 @@ class LlamaAttention(nn.Module):
         # apply static pruning
         # attn_weights = torch.where(attn_weights>1e-2, attn_weights, 0.)
 
+        # MARK: BFP and attention block pruning
         if attn_weights.size()[-2] == attn_weights.size()[-1]:
             if toggle:
+                orig_attention = attn_weights.detach().clone().cpu()
                 attn_weights = bfp_ops.convert_bfp(attn_weights, mant_bits, vec_size, entire=entire)
                 value_states = bfp_ops.convert_bfp(value_states, mant_bits, vec_size, entire=entire)
+
 
             elem_mask = None
             if block_prune:
@@ -460,7 +465,7 @@ class LlamaAttention(nn.Module):
                 attn_prob_grpsize = [i.size()[-1] for i in attn_prob_grps]
                 # switched to amax to score the blocks
                 summed_attn_prob_grps = [torch.sum(i, dim=-1, keepdim=True) for i in attn_prob_grps]
-                summed_attn_after_thres = [torch.where(i > (3.0 / seq_len * j), 1.0, 0.0) for i, j \
+                summed_attn_after_thres = [torch.where(i > (1.0 / seq_len * j), 1.0, 0.0) for i, j \
                                         in zip(summed_attn_prob_grps, attn_prob_grpsize)]
                 if topk > 0:
                     sorted_summed_attn_prob_grps, _ = torch.sort(torch.concatenate(summed_attn_prob_grps, dim=-1),\
@@ -479,10 +484,12 @@ class LlamaAttention(nn.Module):
                 attn_weights = torch.mul(attn_weights, elem_mask)
                 
             attn_sparsity = get_mat_sparsity(elem_mask, True, False)
-            rec_attn = attn_weights.clone().cpu()
+            if toggle:
+                rec_attn = to_bco_format(torch.mul(orig_attention, elem_mask.clone().cpu()))
+            else:
+                rec_attn = None
 
             attn_weights = attn_weights.type_as(value_states)
-            # rec_attn = (attn_weights > 0.0).bool().clone().cpu()
         else:
             attn_weights = attn_weights.type_as(value_states)
             attn_sparsity = -1.0
@@ -794,7 +801,7 @@ class LlamaDecoderLayer(nn.Module):
 
         spar, rec_attn = None, None
         # Self Attention
-        # TODO: set BFP and block prune here
+        # MARK: set BFP and block prune here
         hidden_states, self_attn_weights, present_key_value, spar, rec_attn = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
@@ -806,7 +813,7 @@ class LlamaDecoderLayer(nn.Module):
             position_embeddings=position_embeddings,
             mant_bits = 4,
             vec_size = 20,
-            toggle = False,
+            toggle = True,
             entire = 0,
             block_prune = True,
             **kwargs,
@@ -1058,7 +1065,8 @@ class LlamaModel(LlamaPreTrainedModel):
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
-        all_bp_attns, all_spar = [], []
+        all_spar, all_attn, all_diff = [], [], []
+        all_brow_idx, all_bcol_idx = [], []
 
         for decoder_layer in self.layers:
             if output_hidden_states:
@@ -1091,7 +1099,9 @@ class LlamaModel(LlamaPreTrainedModel):
             hidden_states = layer_outputs[0]
             if layer_outputs[-1] is not None:
                 all_spar.append(layer_outputs[-2])
-                all_bp_attns.append(layer_outputs[-1])
+                all_brow_idx += layer_outputs[-1][0]
+                all_bcol_idx += layer_outputs[-1][1]
+                all_attn += layer_outputs[-1][2]
 
             if use_cache:
                 next_decoder_cache = layer_outputs[2 if output_attentions else 1]
@@ -1101,22 +1111,26 @@ class LlamaModel(LlamaPreTrainedModel):
 
         hidden_states = self.norm(hidden_states)
 
-        # save bfp attens
+        #MARK: save bfp attens
         if attn_dump_path is not None:
-            attn_fp = Path(attn_dump_path + ".pt")
+            attn_fp = Path(attn_dump_path + "_val.npy")
+            attn_brow_idx_fp = Path(attn_dump_path + "_ridx.npy")
+            attn_bcol_idx_fp = Path(attn_dump_path + "_cidx.npy")
             attn_profile_fp = Path(attn_dump_path + ".json")
             attn_fp.parents[0].mkdir(parents=True, exist_ok=True)
-            print(f"get attn path {attn_fp.parent}")
 
-            if all_bp_attns:
-                # print(f"saving attn to {attn_fp.parent}...")
-                all_bp_attn = torch.squeeze(torch.stack(all_bp_attns))
-                # torch.save(all_bp_attn, str(attn_fp))
+            if all_attn:
+                print(f"saving attn to {attn_fp.parent}...")
+                all_attn = torch.squeeze(torch.stack(all_attn)).numpy()
+                np.save(arr=all_attn, file=str(attn_fp))
+                all_ridx = torch.tensor(all_brow_idx).to(int).numpy()
+                np.save(arr=all_ridx, file=attn_brow_idx_fp)
+                all_cidx = torch.tensor(all_bcol_idx).to(int).numpy()
+                np.save(arr=all_cidx, file=attn_bcol_idx_fp)
 
                 with attn_profile_fp.open("w+", encoding="utf-8") as f:
                     if not f.read(1):
-                        dat = {"all_elem_spar": all_spar, "seq_len": all_bp_attn.size(dim=-2)}
-                        print(dat)
+                        dat = {"all_elem_spar": all_spar, "seq_len": hidden_states.size(dim=-2)}
                         f.seek(0)
                         json.dump(dat, f, indent=2)
                     else:
