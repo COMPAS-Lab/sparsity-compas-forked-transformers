@@ -1535,7 +1535,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                     ' We recommend to just use `attn_implementation="flash_attention_2"` when loading the model.'
                 )
 
-            if config._attn_implementation not in ["eager", "sdpa", "flash_attention_2"]:
+            if config._attn_implementation not in ["eager", "sdpa", "flash_attention_2", "flex_flash_attn"]:
                 message = f'Specified `attn_implementation="{config._attn_implementation}"` is not supported. The only possible arguments are `attn_implementation="eager"` (manual attention implementation)'
                 if cls._supports_flash_attn_2:
                     message += ', `"attn_implementation=flash_attention_2"` (implementation using flash attention 2)'
@@ -1576,6 +1576,13 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                     "Using the `SDPA` attention implementation on multi-gpu setup with ROCM may lead to performance issues due to the FA backend. Disabling it to use alternative backends."
                 )
                 torch.backends.cuda.enable_flash_sdp(False)
+        elif config._attn_implementation == "flex_flash_attn":
+            from packaging.version import Version
+            if Version(torch.__version__) >= Version("2.5.0"):
+                pass
+            else:
+                raise ValueError(f"to use FlexAttention your pytorch should be >= {torch.__version__}")
+
         else:
             config._attn_implementation = "eager"
 
