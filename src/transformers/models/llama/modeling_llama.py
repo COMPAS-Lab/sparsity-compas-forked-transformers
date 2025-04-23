@@ -62,9 +62,6 @@ logger = logging.get_logger(__name__)
 
 _CONFIG_FOR_DOC = "LlamaConfig"
 
-flex_attention = torch.compile(flex_attention, mode="max-autotune")
-create_block_mask = torch.compile(create_block_mask)
-
 def _prepare_4d_causal_attention_mask_with_cache_position(
     attention_mask: torch.Tensor,
     sequence_length: int,
@@ -764,6 +761,7 @@ class LlamaFlexAttention(LlamaAttention):
         # flash_attn<2.1 generates top-left aligned causal mask, while what is needed here is bottom-right alignement, that was made default for flash_attn>=2.1. This attribute is used to handle this difference. Reference: https://github.com/Dao-AILab/flash-attention/releases/tag/v2.1.0.
         # Beware that with flash_attn<2.1, using q_seqlen != k_seqlen (except for the case q_seqlen == 1) produces a wrong mask (top-left).
         self._flash_attn_uses_top_left_mask = not is_flash_attn_greater_or_equal_2_10()
+        self._flex_attention = torch.compile(flex_attention, dynamic=True)
 
     def forward(
         self,
@@ -849,10 +847,15 @@ class LlamaFlexAttention(LlamaAttention):
             value_states = value_states.to(target_dtype)
 
         # construct flex attn
-        flex_attn_mod = generate_unstructured_mod()
-        block_mask = create_block_mask(causal_mask, bsz, self.num_heads, q_len, q_len, device=query_states.device)
+        flex_attn_mod = generate_unstructured_mod(q_len)
+        is_causal = True if q_len > 1 else False
+        if is_causal:
+            create_block_mask_compiled = torch.compile(create_block_mask, dynamic=True)
+            block_mask = create_block_mask_compiled(causal_mask, bsz, self.num_heads, q_len, q_len, device=query_states.device)
+        else:
+            block_mask = None
 
-        attn_output = flex_attention(
+        attn_output = self._flex_attention(
             query_states, 
             key_states,
             value_states,

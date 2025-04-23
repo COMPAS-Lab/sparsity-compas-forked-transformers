@@ -887,6 +887,10 @@ _import_structure = {
     "training_args": ["TrainingArguments"],
     "training_args_seq2seq": ["Seq2SeqTrainingArguments"],
     "training_args_tf": ["TFTrainingArguments"],
+    "flexprune": [
+        "unstructured",
+        "masks",
+    ],
     "utils": [
         "CONFIG_NAME",
         "MODEL_CARD_NAME",
