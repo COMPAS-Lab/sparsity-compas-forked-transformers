@@ -32,6 +32,7 @@ import torch
 from packaging import version
 
 from ..utils import is_torch_flex_attn_available
+from ..utils import logging
 from ..utils.import_utils import _torch_version
 
 
@@ -205,6 +206,8 @@ def flex_attention_forward(
     head_mask: Optional[torch.Tensor] = None,
     **kwargs,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    
+    logging.info_once("using flex attention...")
     block_mask = None
     causal_mask = None
     if isinstance(attention_mask, BlockMask):
