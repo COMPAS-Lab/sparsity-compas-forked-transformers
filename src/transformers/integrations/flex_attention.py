@@ -29,12 +29,14 @@ Citation:
 from typing import Optional, Tuple, Union
 
 import torch
+import numpy as np
 from packaging import version
 
 from ..utils import is_torch_flex_attn_available
 from ..utils import logging
 from ..utils.import_utils import _torch_version
 
+logger = logging.get_logger(__name__)
 
 if is_torch_flex_attn_available():
     from torch.nn.attention.flex_attention import BlockMask, flex_attention
@@ -73,7 +75,7 @@ class WrappedFlexAttention:
                     flex_attention, dynamic=False, mode="max-autotune-no-cudagraphs"
                 )
             else:
-                self._compiled_flex_attention = torch.compile(flex_attention)
+                self._compiled_flex_attention = torch.compile(flex_attention, dynamic=True)
             self._is_flex_compiled = True
 
     def __call__(self):
@@ -201,15 +203,20 @@ def flex_attention_forward(
     key: torch.Tensor,
     value: torch.Tensor,
     attention_mask: Union[torch.Tensor, "BlockMask"],
+    score_mod = None,
     scaling: Optional[float] = None,
     softcap: Optional[float] = None,
     head_mask: Optional[torch.Tensor] = None,
     **kwargs,
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    
-    logging.info_once("using flex attention...")
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     block_mask = None
     causal_mask = None
+    kv_len = key.size(-2)
+    seq_len = key.size(-2)
+    bsz, head_dim, q_len, _ = query.size()
+
+    logger.info(f"get size {bsz} {head_dim} {q_len} {kv_len}")
+
     if isinstance(attention_mask, BlockMask):
         block_mask = attention_mask
     else:
@@ -218,9 +225,11 @@ def flex_attention_forward(
     if causal_mask is not None:
         causal_mask = causal_mask[:, :, :, : key.shape[-2]]
 
-    def score_mod(score, batch_idx, head_idx, q_idx, kv_idx):
+    def construct_score_mod(score, batch_idx, head_idx, q_idx, kv_idx):
         if softcap is not None:
             score = softcap * torch.tanh(score / softcap)
+        if score_mod is not None:
+            score = score_mod(score)
         if causal_mask is not None:
             score = score + causal_mask[batch_idx][0][q_idx][kv_idx]
         if head_mask is not None:
@@ -237,11 +246,19 @@ def flex_attention_forward(
         enable_gqa = False
 
     kernel_options = kwargs.get("kernel_options", None)
-    attn_output, attention_weights = compile_friendly_flex_attention(
+
+    kernel_options = {
+        "BLOCK_M": 64,
+        "BLOCK_N": 64,
+        "num_stages": 3,
+        "FORCE_USE_FLEX_ATTENTION": True, 
+    }
+
+    attn_res = compile_friendly_flex_attention(
         query,
         key,
         value,
-        score_mod=score_mod,
+        score_mod=construct_score_mod,
         block_mask=block_mask,
         enable_gqa=enable_gqa,
         scale=scaling,
@@ -249,10 +266,31 @@ def flex_attention_forward(
         # Last time checked on PyTorch == 2.5.1: Flex Attention always computes the lse regardless.
         # For simplification, we thus always return it as no additional computations are introduced.
         return_lse=True,
+        return_nzeros=True,
         training=module.training,
     )
+
+    attn_output = attn_res["out"]
+    attention_weights = attn_res.get("lse", None)
+    score_nnz = attn_res.get("nnz", None)
+
     # lse is returned in float32
     attention_weights = attention_weights.to(value.dtype)
+    score_nnz = score_nnz.to(value.device)
+
+    score_spar = None
+    if score_mod is not None:
+        if q_len > 1:
+            assert q_len == kv_len, f"incorrect prefill attn size {q_len} {kv_len}"
+            per_head_numel = sum(range(1, q_len+1, 1))
+            per_head_nzeros = torch.sum(score_nnz, dim=-1)
+            score_spar = 1. - per_head_nzeros / per_head_numel
+            logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
+        else:
+            score_spar = torch.squeeze(1. - score_nnz / float(kv_len), dim=-1)
+            logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
+
+
     attn_output = attn_output.transpose(1, 2).contiguous()
 
-    return attn_output, attention_weights
+    return attn_output, attention_weights, score_spar

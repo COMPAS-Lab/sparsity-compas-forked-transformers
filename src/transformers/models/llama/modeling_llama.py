@@ -56,7 +56,7 @@ from .configuration_llama import LlamaConfig
 
 if is_torch_flex_attn_available():
     from torch.nn.attention.flex_attention import BlockMask
-
+    from torch.nn.attention.flex_attention import create_block_mask
     from ...integrations.flex_attention import make_flex_block_causal_mask
 
 
@@ -246,9 +246,16 @@ class LlamaAttention(nn.Module):
         cache_position: Optional[torch.LongTensor] = None,
         **kwargs: Unpack[FlashAttentionKwargs],
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        
+        # causal mask function for flex attention
+        def causal_mask(b, h, q_idx, kv_idx):
+            return q_idx >= kv_idx
+        
+
         input_shape = hidden_states.shape[:-1]
         hidden_shape = (*input_shape, -1, self.head_dim)
-
+        bsz, q_len, _ = hidden_states.size()
+        
         query_states = self.q_proj(hidden_states).view(hidden_shape).transpose(1, 2)
         key_states = self.k_proj(hidden_states).view(hidden_shape).transpose(1, 2)
         value_states = self.v_proj(hidden_states).view(hidden_shape).transpose(1, 2)
@@ -262,7 +269,7 @@ class LlamaAttention(nn.Module):
             key_states, value_states = past_key_value.update(key_states, value_states, self.layer_idx, cache_kwargs)
 
         attention_interface: Callable = eager_attention_forward
-        logging.info_once(f"llama using {self.config._attn_implementation}...")
+        logger.info(f"llama using {self.config._attn_implementation}...")
         if self.config._attn_implementation != "eager":
             if self.config._attn_implementation == "sdpa" and kwargs.get("output_attentions", False):
                 logger.warning_once(
@@ -272,21 +279,42 @@ class LlamaAttention(nn.Module):
             else:
                 attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
 
-        attn_output, attn_weights = attention_interface(
+        # fix flex attn block mask issue
+        if self.config._attn_implementation == "flex_attention":
+            is_causal = True if q_len > 1 else False            
+            if is_causal:
+                create_block_mask_compiled = torch.compile(create_block_mask, dynamic=True)
+                block_mask = create_block_mask_compiled(causal_mask, bsz, self.head_dim, q_len, q_len, device=query_states.device)
+            else:
+                block_mask = None
+
+            #FIXME: hardcode attention mask to block mask here
+            attention_mask = block_mask
+
+        attn_out = attention_interface(
             self,
             query_states,
             key_states,
             value_states,
             attention_mask,
+            score_mod = lambda x: x,
             dropout=0.0 if not self.training else self.attention_dropout,
             scaling=self.scaling,
             **kwargs,
         )
 
+        if self.config._attn_implementation == "flex_attention":
+            attn_output, attn_feature, score_spar = attn_out
+        else:
+            attn_output, attn_feature = attn_out
+
         attn_output = attn_output.reshape(*input_shape, -1).contiguous()
         attn_output = self.o_proj(attn_output)
-        return attn_output, attn_weights
 
+        if self.config._attn_implementation == "flex_attention":
+            return attn_output, score_spar
+        else:
+            return attn_output, attn_feature
 
 class LlamaDecoderLayer(nn.Module):
     def __init__(self, config: LlamaConfig, layer_idx: int):
