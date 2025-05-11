@@ -297,13 +297,12 @@ class LlamaAttention(nn.Module):
             key_states,
             value_states,
             attention_mask,
-            score_mod = lambda x: x,
             dropout=0.0 if not self.training else self.attention_dropout,
             scaling=self.scaling,
             **kwargs,
         )
 
-        if self.config._attn_implementation == "flex_attention":
+        if self.config._attn_implementation == "flex_attention_prune":
             attn_output, attn_feature, score_spar = attn_out
         else:
             attn_output, attn_feature = attn_out
@@ -311,7 +310,7 @@ class LlamaAttention(nn.Module):
         attn_output = attn_output.reshape(*input_shape, -1).contiguous()
         attn_output = self.o_proj(attn_output)
 
-        if self.config._attn_implementation == "flex_attention":
+        if self.config._attn_implementation == "flex_attention_prune":
             return attn_output, score_spar
         else:
             return attn_output, attn_feature

@@ -60,7 +60,7 @@ from .integrations import PeftAdapterMixin, deepspeed_config, is_deepspeed_zero3
 from .integrations.accelerate import find_tied_parameters, init_empty_weights
 from .integrations.deepspeed import _load_state_dict_into_zero3_model, is_deepspeed_available
 from .integrations.flash_attention import flash_attention_forward
-from .integrations.flex_attention import flex_attention_forward
+from .integrations.flex_attention import flex_attention_forward, flex_attention_prune_forward
 from .integrations.sdpa_attention import sdpa_attention_forward
 from .integrations.tensor_parallel import (
     SUPPORTED_TP_STYLES,
@@ -5828,6 +5828,7 @@ class AttentionInterface(MutableMapping):
     _global_mapping = {
         "flash_attention_2": flash_attention_forward,
         "flex_attention": flex_attention_forward,
+        "flex_attention_prune": flex_attention_prune_forward,
         "sdpa": sdpa_attention_forward,
     }
 

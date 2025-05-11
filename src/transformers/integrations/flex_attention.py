@@ -75,7 +75,7 @@ class WrappedFlexAttention:
                     flex_attention, dynamic=False, mode="max-autotune-no-cudagraphs"
                 )
             else:
-                self._compiled_flex_attention = torch.compile(flex_attention, dynamic=True)
+                self._compiled_flex_attention = torch.compile(flex_attention)
             self._is_flex_compiled = True
 
     def __call__(self):
@@ -208,7 +208,7 @@ def flex_attention_forward(
     softcap: Optional[float] = None,
     head_mask: Optional[torch.Tensor] = None,
     **kwargs,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor]:
     block_mask = None
     causal_mask = None
     kv_len = key.size(-2)
@@ -266,29 +266,136 @@ def flex_attention_forward(
         # Last time checked on PyTorch == 2.5.1: Flex Attention always computes the lse regardless.
         # For simplification, we thus always return it as no additional computations are introduced.
         return_lse=True,
-        return_nzeros=True,
         training=module.training,
     )
 
     attn_output = attn_res["out"]
     attention_weights = attn_res.get("lse", None)
-    score_nnz = attn_res.get("nnz", None)
+
+    # lse is returned in float32
+    attention_weights = attention_weights.to(value.dtype)
+    attn_output = attn_output.transpose(1, 2).contiguous()
+
+    return attn_output, attention_weights
+
+def flex_attention_prune_forward(
+    module: torch.nn.Module,
+    query: torch.Tensor,
+    key: torch.Tensor,
+    value: torch.Tensor,
+    attention_mask: Union[torch.Tensor, "BlockMask"],
+    scaling: Optional[float] = None,
+    softcap: Optional[float] = None,
+    head_mask: Optional[torch.Tensor] = None,
+    **kwargs,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    block_mask = None
+    causal_mask = None
+    kv_len = key.size(-2)
+    bsz, head_dim, q_len, _ = query.size()
+
+    logger.info(f"get size {bsz} {head_dim} {q_len} {kv_len}")
+
+    if isinstance(attention_mask, BlockMask):
+        block_mask = attention_mask
+    else:
+        causal_mask = attention_mask
+
+    if causal_mask is not None:
+        causal_mask = causal_mask[:, :, :, : key.shape[-2]]
+
+    def construct_original_score(score, batch_idx, head_idx, q_idx, kv_idx):
+        if causal_mask is not None:
+            score = score + causal_mask[batch_idx][0][q_idx][kv_idx]
+        if head_mask is not None:
+            score = score + head_mask[batch_idx][head_idx][0][0]
+        return score
+    
+    enable_gqa = True
+    num_local_query_heads = query.shape[1]
+
+    # When running TP this helps:
+    if not ((num_local_query_heads & (num_local_query_heads - 1)) == 0):
+        key = repeat_kv(key, query.shape[1] // key.shape[1])
+        value = repeat_kv(value, query.shape[1] // value.shape[1])
+        enable_gqa = False
+
+    kernel_options = {
+        "BLOCK_M": 64,
+        "BLOCK_N": 64,
+        "num_stages": 1,
+        "FORCE_USE_FLEX_ATTENTION": True, 
+    }
+
+    score_expsum = torch.zeros(bsz, head_dim, q_len, dtype=float, device=query.device)
+    flex_attention_compiled = WrappedFlexAttention(module.training)()
+
+    # iteration one: get expsum from original run
+    attn_res = flex_attention_compiled(
+        query,
+        key,
+        value,
+        score_expsum,
+        score_mod=construct_original_score,
+        block_mask=block_mask,
+        enable_gqa=enable_gqa,
+        scale=scaling,
+        kernel_options=kernel_options,
+        # Last time checked on PyTorch == 2.5.1: Flex Attention always computes the lse regardless.
+        # For simplification, we thus always return it as no additional computations are introduced.
+        return_lse=True,
+        return_nzeros=False,
+        return_expsum=True,
+    )
+
+    del attn_res["out"]
+    del attn_res["lse"]
+    score_expsum = attn_res.get("attn_feature", None).to(value.dtype)
+    # score_expsum = torch.unsqueeze(score_expsum.to(value.dtype), dim=-1)
+    # curr_score_size = list(score_expsum.size())
+    # curr_score_size[-1] = kv_len
+    # score_expsum = score_expsum.expand(*curr_score_size)
+    logger.info(f"exp sum: {score_expsum}, size: {tuple(score_expsum.size())}")
+
+    kernel_options["SCORE_EXPSUM"] = score_expsum
+
+    # iteration two: apply expsum to flex attn with pruning
+    attn_res = flex_attention_compiled(
+        query,
+        key,
+        value,
+        score_expsum,
+        score_mod=construct_original_score,
+        block_mask=block_mask,
+        enable_gqa=enable_gqa,
+        scale=scaling,
+        kernel_options=kernel_options,
+        # Last time checked on PyTorch == 2.5.1: Flex Attention always computes the lse regardless.
+        # For simplification, we thus always return it as no additional computations are introduced.
+        return_lse=True,
+        return_nzeros=True,
+        return_expsum=False,
+        threshold = 1e-3,
+    )
+
+    attn_output = attn_res["out"]
+    attention_weights = attn_res.get("lse", None)
+    score_nnz = attn_res.get("attn_feature", None)
 
     # lse is returned in float32
     attention_weights = attention_weights.to(value.dtype)
     score_nnz = score_nnz.to(value.device)
 
     score_spar = None
-    if score_mod is not None:
-        if q_len > 1:
-            assert q_len == kv_len, f"incorrect prefill attn size {q_len} {kv_len}"
-            per_head_numel = sum(range(1, q_len+1, 1))
-            per_head_nzeros = torch.sum(score_nnz, dim=-1)
-            score_spar = 1. - per_head_nzeros / per_head_numel
-            logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
-        else:
-            score_spar = torch.squeeze(1. - score_nnz / float(kv_len), dim=-1)
-            logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
+    if q_len > 1:
+        assert q_len == kv_len, f"incorrect prefill attn size {q_len} {kv_len}"
+        per_head_numel = sum(range(1, q_len+1, 1))
+        per_head_nzeros = torch.sum(score_nnz, dim=-1)
+        score_spar = 1. - per_head_nzeros / per_head_numel
+        logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
+    else:
+        score_spar = torch.squeeze(1. - score_nnz / float(kv_len), dim=-1)
+        logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
 
 
     attn_output = attn_output.transpose(1, 2).contiguous()
