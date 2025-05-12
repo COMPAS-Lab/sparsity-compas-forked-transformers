@@ -172,6 +172,7 @@ def compile_friendly_flex_attention(
     query: torch.Tensor,
     key: torch.Tensor,
     value: torch.Tensor,
+    score_expsum: torch.Tensor,
     training=False,
     **kwargs,
 ) -> torch.Tensor:
@@ -181,6 +182,7 @@ def compile_friendly_flex_attention(
         query,
         key,
         value,
+        score_expsum,
         **kwargs,
     )
 
@@ -254,10 +256,13 @@ def flex_attention_forward(
         "FORCE_USE_FLEX_ATTENTION": True, 
     }
 
+    score_expsum = torch.zeros(bsz, head_dim, q_len, dtype=float, device=query.device, requires_grad=False)
+
     attn_res = compile_friendly_flex_attention(
         query,
         key,
         value,
+        score_expsum,
         score_mod=construct_score_mod,
         block_mask=block_mask,
         enable_gqa=enable_gqa,
@@ -266,6 +271,8 @@ def flex_attention_forward(
         # Last time checked on PyTorch == 2.5.1: Flex Attention always computes the lse regardless.
         # For simplification, we thus always return it as no additional computations are introduced.
         return_lse=True,
+        return_nzeros=False,
+        return_expsum=False,
         training=module.training,
     )
 
@@ -385,7 +392,7 @@ def flex_attention_prune_forward(
         return_lse=True,
         return_nzeros=True,
         return_expsum=False,
-        threshold = threshold,
+        threshold=threshold,
     )
 
     attn_output = attn_res["out"]
