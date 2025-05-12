@@ -327,7 +327,7 @@ def flex_attention_prune_forward(
         "FORCE_USE_FLEX_ATTENTION": True, 
     }
 
-    score_expsum = torch.zeros(bsz, head_dim, q_len, dtype=float, device=query.device)
+    score_expsum = torch.zeros(bsz, head_dim, q_len, dtype=float, device=query.device, requires_grad=False)
     flex_attention_compiled = WrappedFlexAttention(module.training)()
 
     # iteration one: get expsum from original run
@@ -350,14 +350,16 @@ def flex_attention_prune_forward(
 
     del attn_res["out"]
     del attn_res["lse"]
-    score_expsum = attn_res.get("attn_feature", None).to(value.dtype)
+    score_expsum = torch.detach_copy(attn_res["attn_feature"].to(value.dtype))
+    del attn_res["attn_feature"]
+    score_expsum.requires_grad_(False)
+
     # score_expsum = torch.unsqueeze(score_expsum.to(value.dtype), dim=-1)
     # curr_score_size = list(score_expsum.size())
     # curr_score_size[-1] = kv_len
     # score_expsum = score_expsum.expand(*curr_score_size)
+    score_expsum.requires_grad = False
     logger.info(f"exp sum: {score_expsum}, size: {tuple(score_expsum.size())}")
-
-    kernel_options["SCORE_EXPSUM"] = score_expsum
 
     # iteration two: apply expsum to flex attn with pruning
     attn_res = flex_attention_compiled(

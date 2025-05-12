@@ -251,6 +251,8 @@ class LlamaAttention(nn.Module):
         def causal_mask(b, h, q_idx, kv_idx):
             return q_idx >= kv_idx
         
+        if kwargs.get("threshold", None):
+            logger.info(f"get threshold {kwargs["threshold"]}")
 
         input_shape = hidden_states.shape[:-1]
         hidden_shape = (*input_shape, -1, self.head_dim)
@@ -807,6 +809,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         output_hidden_states: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
         logits_to_keep: Union[int, torch.Tensor] = 0,
+        attention_pruning_threshold: Optional[float] = 0.0,
         **kwargs: Unpack[KwargsForCausalLM],
     ) -> CausalLMOutputWithPast:
         r"""
