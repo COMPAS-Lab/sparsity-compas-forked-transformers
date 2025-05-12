@@ -296,6 +296,14 @@ def flex_attention_prune_forward(
 
     logger.info(f"get size {bsz} {head_dim} {q_len} {kv_len}")
 
+    threshold = kwargs.get("attn_prun_threshold", None)
+    if threshold is None:
+        raise ValueError(f"flex attn prune expects a valid threshold")
+    if threshold == 0.0:
+        logger.warning(f"flex attn prune getting 0 as threshold")
+    else:
+        logger.info(f"flex attn prune threshold: {threshold:.4f}")
+
     if isinstance(attention_mask, BlockMask):
         block_mask = attention_mask
     else:
@@ -377,7 +385,7 @@ def flex_attention_prune_forward(
         return_lse=True,
         return_nzeros=True,
         return_expsum=False,
-        threshold = 1e-3,
+        threshold = threshold,
     )
 
     attn_output = attn_res["out"]

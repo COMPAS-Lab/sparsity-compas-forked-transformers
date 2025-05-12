@@ -244,6 +244,7 @@ class LlamaAttention(nn.Module):
         attention_mask: Optional[torch.Tensor],
         past_key_value: Optional[Cache] = None,
         cache_position: Optional[torch.LongTensor] = None,
+        attention_pruning_threshold: Optional[float] = 0.0,
         **kwargs: Unpack[FlashAttentionKwargs],
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         
@@ -849,6 +850,10 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
         )
 
         # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
+        kwargs_wthres = kwargs.copy()
+        if self.config._attn_implementation == "flex_attention_prune":
+            kwargs_wthres["attn_prun_threshold"] = attention_pruning_threshold
+
         outputs: BaseModelOutputWithPast = self.model(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -859,7 +864,7 @@ class LlamaForCausalLM(LlamaPreTrainedModel, GenerationMixin):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             cache_position=cache_position,
-            **kwargs,
+            **kwargs_wthres,
         )
 
         hidden_states = outputs.last_hidden_state
