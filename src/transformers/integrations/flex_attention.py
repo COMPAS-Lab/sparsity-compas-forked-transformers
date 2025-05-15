@@ -80,7 +80,10 @@ class WrappedFlexAttention:
 
     def __call__(self):
         return self._compiled_flex_attention
-
+    
+    def recompile(self):
+        self._compiled_flex_attention = torch.compile(flex_attention)
+        self._is_flex_compiled = True
 
 Offset = Union[torch.Tensor, int]
 
@@ -346,7 +349,7 @@ def flex_attention_prune_forward(
     flex_attention_compiled = WrappedFlexAttention(module.training)()
 
     # iteration one: get expsum from original run
-    attn_res = flex_attention_compiled(
+    attn_res = flex_attention_compiled.__call__(
         query,
         key,
         value,
@@ -373,7 +376,6 @@ def flex_attention_prune_forward(
     # curr_score_size = list(score_expsum.size())
     # curr_score_size[-1] = kv_len
     # score_expsum = score_expsum.expand(*curr_score_size)
-    score_expsum.requires_grad = False
     logger.info(f"exp sum: {score_expsum}, size: {tuple(score_expsum.size())}")
 
     # iteration two: apply expsum to flex attn with pruning

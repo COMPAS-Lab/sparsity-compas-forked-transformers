@@ -26,6 +26,7 @@ from ...modeling_utils import ALL_ATTENTION_FUNCTIONS
 from ...processing_utils import Unpack
 from ...utils import (
     LossKwargs,
+    is_torch_flex_attn_available,
     logging,
 )
 from ..gemma.modeling_gemma import GemmaMLP
@@ -43,6 +44,10 @@ from ..llama.modeling_llama import (
 from ..mistral.modeling_mistral import MistralModel
 from .configuration_qwen3 import Qwen3Config
 
+if is_torch_flex_attn_available():
+    from torch.nn.attention.flex_attention import BlockMask
+    from torch.nn.attention.flex_attention import create_block_mask
+    from ...integrations.flex_attention import make_flex_block_causal_mask
 
 logger = logging.get_logger(__name__)
 
@@ -79,8 +84,16 @@ class Qwen3Attention(LlamaAttention):
         cache_position: Optional[torch.LongTensor] = None,
         **kwargs: Unpack[FlashAttentionKwargs],
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+        # causal mask function for flex attention
+        def causal_mask(b, h, q_idx, kv_idx):
+            return q_idx >= kv_idx
+        
+        if kwargs.get("threshold", None):
+            logger.info(f"get threshold {kwargs["threshold"]}")
+
         input_shape = hidden_states.shape[:-1]
         hidden_shape = (*input_shape, -1, self.head_dim)
+        bsz, q_len, _ = hidden_states.size()
 
         query_states = self.q_norm(self.q_proj(hidden_states).view(hidden_shape)).transpose(1, 2)
         key_states = self.k_norm(self.k_proj(hidden_states).view(hidden_shape)).transpose(1, 2)
@@ -103,8 +116,20 @@ class Qwen3Attention(LlamaAttention):
                 )
             else:
                 attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
+        
+        # fix flex attn block mask issue
+        if self.config._attn_implementation == "flex_attention":
+            is_causal = True if q_len > 1 else False            
+            if is_causal:
+                create_block_mask_compiled = torch.compile(create_block_mask, dynamic=True)
+                block_mask = create_block_mask_compiled(causal_mask, bsz, self.head_dim, q_len, q_len, device=query_states.device)
+            else:
+                block_mask = None
 
-        attn_output, attn_weights = attention_interface(
+            #FIXME: hardcode attention mask to block mask here
+            attention_mask = block_mask
+        
+        attn_out = attention_interface(
             self,
             query_states,
             key_states,
@@ -116,10 +141,18 @@ class Qwen3Attention(LlamaAttention):
             **kwargs,
         )
 
+        if self.config._attn_implementation == "flex_attention_prune":
+            attn_output, attn_feature, score_spar = attn_out
+        else:
+            attn_output, attn_feature = attn_out
+
         attn_output = attn_output.reshape(*input_shape, -1).contiguous()
         attn_output = self.o_proj(attn_output)
-        return attn_output, attn_weights
 
+        if self.config._attn_implementation == "flex_attention_prune":
+            return attn_output, score_spar
+        else:
+            return attn_output, attn_feature
 
 class Qwen3DecoderLayer(LlamaDecoderLayer):
     def __init__(self, config: Qwen3Config, layer_idx: int):

@@ -10,7 +10,7 @@ from ...modeling_flash_attention_utils import FlashAttentionKwargs
 from ...modeling_outputs import BaseModelOutputWithPast, QuestionAnsweringModelOutput
 from ...modeling_utils import ALL_ATTENTION_FUNCTIONS
 from ...processing_utils import Unpack
-from ...utils import logging
+from ...utils import logging, is_torch_flex_attn_available
 from ..llama.modeling_llama import (
     LlamaAttention,
     LlamaDecoderLayer,
@@ -25,6 +25,10 @@ from ..llama.modeling_llama import (
 )
 from .configuration_mistral import MistralConfig
 
+if is_torch_flex_attn_available():
+    from torch.nn.attention.flex_attention import BlockMask
+    from torch.nn.attention.flex_attention import create_block_mask
+    from ...integrations.flex_attention import make_flex_block_causal_mask
 
 logger = logging.get_logger(__name__)
 
@@ -59,6 +63,17 @@ class MistralAttention(LlamaAttention):
         input_shape = hidden_states.shape[:-1]
         hidden_shape = (*input_shape, -1, self.head_dim)
 
+        # causal mask function for flex attention
+        def causal_mask(b, h, q_idx, kv_idx):
+            return q_idx >= kv_idx
+        
+        if kwargs.get("threshold", None):
+            logger.info(f"get threshold {kwargs["threshold"]}")
+
+        input_shape = hidden_states.shape[:-1]
+        hidden_shape = (*input_shape, -1, self.head_dim)
+        bsz, q_len, _ = hidden_states.size()
+
         query_states = self.q_proj(hidden_states).view(hidden_shape).transpose(1, 2)
         key_states = self.k_proj(hidden_states).view(hidden_shape).transpose(1, 2)
         value_states = self.v_proj(hidden_states).view(hidden_shape).transpose(1, 2)
@@ -81,7 +96,19 @@ class MistralAttention(LlamaAttention):
             else:
                 attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
 
-        attn_output, attn_weights = attention_interface(
+        # fix flex attn block mask issue
+        if self.config._attn_implementation == "flex_attention":
+            is_causal = True if q_len > 1 else False            
+            if is_causal:
+                create_block_mask_compiled = torch.compile(create_block_mask, dynamic=True)
+                block_mask = create_block_mask_compiled(causal_mask, bsz, self.head_dim, q_len, q_len, device=query_states.device)
+            else:
+                block_mask = None
+
+            #FIXME: hardcode attention mask to block mask here
+            attention_mask = block_mask
+
+        attn_out = attention_interface(
             self,
             query_states,
             key_states,
@@ -93,9 +120,18 @@ class MistralAttention(LlamaAttention):
             **kwargs,
         )
 
+        if self.config._attn_implementation == "flex_attention_prune":
+            attn_output, attn_feature, score_spar = attn_out
+        else:
+            attn_output, attn_feature = attn_out
+
         attn_output = attn_output.reshape(*input_shape, -1).contiguous()
         attn_output = self.o_proj(attn_output)
-        return attn_output, attn_weights
+
+        if self.config._attn_implementation == "flex_attention_prune":
+            return attn_output, score_spar
+        else:
+            return attn_output, attn_feature
 
 
 class MistralDecoderLayer(LlamaDecoderLayer):

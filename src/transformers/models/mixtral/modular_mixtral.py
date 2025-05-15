@@ -473,6 +473,7 @@ class MixtralForCausalLM(MistralForCausalLM):
         output_router_logits: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
         logits_to_keep: Union[int, torch.Tensor] = 0,
+        attention_pruning_threshold: Optional[float] = 0.0,
         **kwargs: Unpack[KwargsForCausalLM],
     ) -> MoeCausalLMOutputWithPast:
         r"""
@@ -517,6 +518,10 @@ class MixtralForCausalLM(MistralForCausalLM):
         )
 
         # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
+        kwargs_wthres = kwargs.copy()
+        if self.config._attn_implementation == "flex_attention_prune":
+            kwargs_wthres["attn_prun_threshold"] = attention_pruning_threshold
+
         outputs: MoeModelOutputWithPast = self.model(
             input_ids=input_ids,
             attention_mask=attention_mask,
