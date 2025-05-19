@@ -217,7 +217,6 @@ def flex_attention_forward(
     block_mask = None
     causal_mask = None
     kv_len = key.size(-2)
-    seq_len = key.size(-2)
     bsz, head_dim, q_len, _ = query.size()
 
     logger.info(f"get size {bsz} {head_dim} {q_len} {kv_len}")
@@ -251,13 +250,13 @@ def flex_attention_forward(
         enable_gqa = False
 
     kernel_options = kwargs.get("kernel_options", None)
-
-    kernel_options = {
-        "BLOCK_M": 64,
-        "BLOCK_N": 64,
-        "num_stages": 3,
-        "FORCE_USE_FLEX_ATTENTION": True, 
-    }
+    if kernel_options == None:
+        kernel_options = {
+            "BLOCK_M": 64,
+            "BLOCK_N": 64,
+            "num_stages": 3,
+            "FORCE_USE_FLEX_ATTENTION": True, 
+        }
 
     score_expsum = torch.zeros(bsz, head_dim, q_len, dtype=float, device=query.device, requires_grad=False)
 
@@ -275,9 +274,15 @@ def flex_attention_forward(
         # For simplification, we thus always return it as no additional computations are introduced.
         return_lse=True,
         return_nzeros=False,
-        return_expsum=False,
+        return_expsum=True,
         training=module.training,
     )
+
+    score_expsum = torch.detach_copy(attn_res["attn_feature"])
+    score_expsum.requires_grad_(False)
+    logger.info(f"exp sum: {score_expsum}, size: {tuple(score_expsum.size())}")
+    assert torch.all(~torch.isnan(score_expsum)), "nan found in score expsum"
+    assert torch.any(score_expsum > 0), "zero found in score expsum"
 
     attn_output = attn_res["out"]
     attention_weights = attn_res.get("lse", None)
@@ -338,18 +343,19 @@ def flex_attention_prune_forward(
         value = repeat_kv(value, query.shape[1] // value.shape[1])
         enable_gqa = False
 
-    kernel_options = {
-        "BLOCK_M": 64,
-        "BLOCK_N": 64,
-        "num_stages": 1,
-        "FORCE_USE_FLEX_ATTENTION": True, 
-    }
+    kernel_options = kwargs.get("kernel_options", None)
+    if kernel_options == None:
+        kernel_options = {
+            "BLOCK_M": 64,
+            "BLOCK_N": 64,
+            "num_stages": 1,
+            "FORCE_USE_FLEX_ATTENTION": True, 
+        }
 
     score_expsum = torch.zeros(bsz, head_dim, q_len, dtype=float, device=query.device, requires_grad=False)
-    flex_attention_compiled = WrappedFlexAttention(module.training)()
 
     # iteration one: get expsum from original run
-    attn_res = flex_attention_compiled.__call__(
+    attn_res = compile_friendly_flex_attention(
         query,
         key,
         value,
@@ -364,22 +370,20 @@ def flex_attention_prune_forward(
         return_lse=True,
         return_nzeros=False,
         return_expsum=True,
+        training=module.training,
     )
 
     del attn_res["out"]
     del attn_res["lse"]
-    score_expsum = torch.detach_copy(attn_res["attn_feature"].to(value.dtype))
+    score_expsum = torch.detach_copy(attn_res["attn_feature"])
     del attn_res["attn_feature"]
     score_expsum.requires_grad_(False)
-
-    # score_expsum = torch.unsqueeze(score_expsum.to(value.dtype), dim=-1)
-    # curr_score_size = list(score_expsum.size())
-    # curr_score_size[-1] = kv_len
-    # score_expsum = score_expsum.expand(*curr_score_size)
     logger.info(f"exp sum: {score_expsum}, size: {tuple(score_expsum.size())}")
+    assert torch.all(~torch.isnan(score_expsum)), "nan found in score expsum"
+    assert torch.any(score_expsum > 0), "zero found in score expsum"
 
     # iteration two: apply expsum to flex attn with pruning
-    attn_res = flex_attention_compiled(
+    attn_res = compile_friendly_flex_attention(
         query,
         key,
         value,
@@ -395,6 +399,7 @@ def flex_attention_prune_forward(
         return_nzeros=True,
         return_expsum=False,
         threshold=threshold,
+        training=module.training,
     )
 
     attn_output = attn_res["out"]

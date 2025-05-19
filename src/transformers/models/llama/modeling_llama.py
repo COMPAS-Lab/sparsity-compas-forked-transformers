@@ -307,7 +307,7 @@ class LlamaAttention(nn.Module):
                 attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
 
         # fix flex attn block mask issue
-        if self.config._attn_implementation == "flex_attention":
+        if self.config._attn_implementation in ["flex_attention", "flex_attention_prune"]:
             is_causal = True if q_len > 1 else False            
             if is_causal:
                 create_block_mask_compiled = torch.compile(create_block_mask, dynamic=True)
