@@ -234,6 +234,8 @@ def eager_attention_forward(
     dropout: float = 0.0,
     **kwargs,
 ):
+    threshold = kwargs.get("attn_prun_threshold", None)
+
     key_states = repeat_kv(key, module.num_key_value_groups)
     value_states = repeat_kv(value, module.num_key_value_groups)
 
@@ -241,6 +243,29 @@ def eager_attention_forward(
     if attention_mask is not None:
         causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
         attn_weights = attn_weights + causal_mask
+
+    bsz, h, q_len, hdim = query.size()
+    _, _, kv_len, _ = key_states.size()
+
+    if threshold is not None:
+        logger.info(f"eager attn prune threshold: {threshold:.4f}")
+        expsum = torch.sum(torch.exp2(attn_weights), dim=-1)
+        expsum = expsum.view(*(tuple(expsum.size()) + (1,)))
+        normalized = torch.exp(attn_weights) / expsum
+        attn_weights = torch.where(normalized < threshold, float("-inf"), attn_weights)
+        score_nnz = torch.count_nonzero(torch.where(normalized < 1e-3, 0, 1), dim=-1)
+        if q_len > 1:
+            assert q_len == kv_len, f"incorrect prefill attn size {q_len} {kv_len}"
+            per_head_numel = sum(range(1, q_len + 1, 1))
+            per_head_nzeros = torch.sum(score_nnz, dim=-1)
+            score_spar = 1.0 - per_head_nzeros / per_head_numel
+            # logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
+        else:
+            expsum = torch.squeeze(expsum, dim=-1)
+            logger.info(f"expsum: {expsum}, size: {tuple(expsum.size())}")
+            logger.info(f"nzeros: {score_nnz}, size: {tuple(score_nnz.size())}")
+            score_spar = torch.squeeze(1.0 - score_nnz / float(kv_len), dim=-1)
+            logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
 
     attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query.dtype)
     attn_weights = nn.functional.dropout(attn_weights, p=dropout, training=module.training)
@@ -313,7 +338,7 @@ class MixtralAttention(nn.Module):
                 attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
 
         # fix flex attn block mask issue
-        if self.config._attn_implementation == "flex_attention":
+        if self.config._attn_implementation in ["flex_attention", "flex_attention_prune"]:
             is_causal = True if q_len > 1 else False
             if is_causal:
                 create_block_mask_compiled = torch.compile(create_block_mask, dynamic=True)
@@ -1082,7 +1107,7 @@ class MixtralForCausalLM(MixtralPreTrainedModel, GenerationMixin):
             output_hidden_states=output_hidden_states,
             output_router_logits=output_router_logits,
             cache_position=cache_position,
-            **kwargs,
+            **kwargs_wthres,
         )
 
         hidden_states = outputs.last_hidden_state

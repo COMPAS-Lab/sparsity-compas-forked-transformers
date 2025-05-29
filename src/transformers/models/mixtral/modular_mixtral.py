@@ -533,7 +533,7 @@ class MixtralForCausalLM(MistralForCausalLM):
             output_hidden_states=output_hidden_states,
             output_router_logits=output_router_logits,
             cache_position=cache_position,
-            **kwargs,
+            **kwargs_wthres,
         )
 
         hidden_states = outputs.last_hidden_state
