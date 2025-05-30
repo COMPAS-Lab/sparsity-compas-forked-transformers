@@ -341,6 +341,7 @@ class MixtralAttention(nn.Module):
         if self.config._attn_implementation in ["flex_attention", "flex_attention_prune"]:
             is_causal = True if q_len > 1 else False
             if is_causal:
+                logger.info(f"block mask created")
                 create_block_mask_compiled = torch.compile(create_block_mask, dynamic=True)
                 block_mask = create_block_mask_compiled(
                     causal_mask, bsz, self.head_dim, q_len, q_len, device=query_states.device
