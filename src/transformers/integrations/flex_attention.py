@@ -381,8 +381,8 @@ def flex_attention_prune_forward(
     score_expsum.requires_grad_(False)
     logger.info(f"exp sum: {score_expsum}, size: {tuple(score_expsum.size())}")
     assert torch.all(~torch.isnan(score_expsum)), "nan found in score expsum"
-    assert torch.any(score_expsum > 0), "zero found in score expsum"
-    assert torch.all(score_expsum < float("inf")), "zero found in score expsum"
+    assert torch.all(score_expsum > 0), "zero found in score expsum"
+    assert torch.all(score_expsum < float("inf")), "inf found in score expsum"
 
     # iteration two: apply expsum to flex attn with pruning
     attn_res = compile_friendly_flex_attention(
