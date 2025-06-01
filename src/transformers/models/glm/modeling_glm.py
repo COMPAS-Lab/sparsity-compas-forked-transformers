@@ -54,7 +54,7 @@ from .configuration_glm import GlmConfig
 
 
 if is_torch_flex_attn_available():
-    from torch.nn.attention.flex_attention import BlockMask, create_block_mask
+    from torch.nn.attention.flex_attention import BlockMask
 
     from ...integrations.flex_attention import make_flex_block_causal_mask
 
@@ -261,20 +261,6 @@ class GlmAttention(nn.Module):
                 )
             else:
                 attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
-
-        # fix flex attn block mask issue
-        if self.config._attn_implementation in ["flex_attention", "flex_attention_prune"]:
-            is_causal = True if q_len > 1 else False
-            if is_causal:
-                create_block_mask_compiled = torch.compile(create_block_mask, dynamic=True)
-                block_mask = create_block_mask_compiled(
-                    causal_mask, bsz, self.head_dim, q_len, q_len, device=query_states.device
-                )
-            else:
-                block_mask = None
-
-            # FIXME: hardcode attention mask to block mask here
-            attention_mask = block_mask
 
         attn_out = attention_interface(
             self,
@@ -678,7 +664,7 @@ class GlmModel(GlmPreTrainedModel):
             if attention_mask is not None and (attention_mask == 0.0).any():
                 return attention_mask
             return None
-        if self.config._attn_implementation == "flex_attention":
+        if self.config._attn_implementation in ["flex_attention", "flex_attention_prune"]:
             if isinstance(attention_mask, torch.Tensor):
                 attention_mask = make_flex_block_causal_mask(attention_mask)
             if isinstance(attention_mask, BlockMask):
