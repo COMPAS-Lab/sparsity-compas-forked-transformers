@@ -310,6 +310,10 @@ def flex_attention_prune_forward(
     bsz, head_dim, q_len, _ = query.size()
 
     logger.info(f"get size {bsz} {head_dim} {q_len} {kv_len}")
+    if q_len > 1:
+        assert not (attention_mask is None), "prefill stage gets no attention mask"
+    else:
+        assert attention_mask is None, "decoding stage gets attention mask"
 
     threshold = kwargs.get("attn_prun_threshold", None)
     if threshold is None:

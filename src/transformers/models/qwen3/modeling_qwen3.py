@@ -55,7 +55,7 @@ from .configuration_qwen3 import Qwen3Config
 
 
 if is_torch_flex_attn_available():
-    from torch.nn.attention.flex_attention import BlockMask, create_block_mask
+    from torch.nn.attention.flex_attention import BlockMask
 
     from ...integrations.flex_attention import make_flex_block_causal_mask
 
@@ -275,20 +275,6 @@ class Qwen3Attention(nn.Module):
                 )
             else:
                 attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
-
-        # fix flex attn block mask issue
-        if self.config._attn_implementation in ["flex_attention", "flex_attention_prune"]:
-            is_causal = True if q_len > 1 else False
-            if is_causal:
-                create_block_mask_compiled = torch.compile(create_block_mask, dynamic=True)
-                block_mask = create_block_mask_compiled(
-                    causal_mask, bsz, self.head_dim, q_len, q_len, device=query_states.device
-                )
-            else:
-                block_mask = None
-
-            # FIXME: hardcode attention mask to block mask here
-            attention_mask = block_mask
 
         attn_out = attention_interface(
             self,
@@ -686,10 +672,16 @@ class Qwen3Model(Qwen3PreTrainedModel):
             if attention_mask is not None and 0.0 in attention_mask:
                 return attention_mask
             return None
+
+        logger.info(f"seq len: {past_key_values.get_seq_length()}")
+        logger.info(f"in size: {tuple(input_tensor.size())}")
         if self.config._attn_implementation in ["flex_attention", "flex_attention_prune"]:
-            if isinstance(attention_mask, torch.Tensor):
-                attention_mask = make_flex_block_causal_mask(attention_mask)
-            return attention_mask
+            if past_key_values.get_seq_length() == 0:
+                if isinstance(attention_mask, torch.Tensor):
+                    attention_mask = make_flex_block_causal_mask(attention_mask)
+                return attention_mask
+            else:
+                return None
 
         # For SDPA, when possible, we will rely on its `is_causal` argument instead of its `attn_mask` argument, in
         # order to dispatch on Flash Attention 2. This feature is not compatible with static cache, as SDPA will fail

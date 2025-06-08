@@ -54,8 +54,6 @@ from .configuration_glm import GlmConfig
 
 
 if is_torch_flex_attn_available():
-    from torch.nn.attention.flex_attention import BlockMask
-
     from ...integrations.flex_attention import make_flex_block_causal_mask
 
 
@@ -664,11 +662,16 @@ class GlmModel(GlmPreTrainedModel):
             if attention_mask is not None and (attention_mask == 0.0).any():
                 return attention_mask
             return None
+
+        logger.info(f"seq len: {past_key_values.get_seq_length()}")
+        logger.info(f"in size: {tuple(input_tensor.size())}")
         if self.config._attn_implementation in ["flex_attention", "flex_attention_prune"]:
-            if isinstance(attention_mask, torch.Tensor):
-                attention_mask = make_flex_block_causal_mask(attention_mask)
-            if isinstance(attention_mask, BlockMask):
+            if past_key_values.get_seq_length() == 0:
+                if isinstance(attention_mask, torch.Tensor):
+                    attention_mask = make_flex_block_causal_mask(attention_mask)
                 return attention_mask
+            else:
+                return None
 
         # For SDPA, when possible, we will rely on its `is_causal` argument instead of its `attn_mask` argument, in
         # order to dispatch on Flash Attention 2. This feature is not compatible with static cache, as SDPA will fail
