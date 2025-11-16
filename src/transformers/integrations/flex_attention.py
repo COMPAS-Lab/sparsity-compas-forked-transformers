@@ -143,7 +143,7 @@ def make_flex_block_causal_mask(
         See :func:`~torchtune.modules.attention_utils.create_block_causal_mask`
         for an illustration.
         """
-        causal_mask = q_idx >= kv_idx  # not valid when decoding
+        causal_mask = (q_idx >= kv_idx).to(device)  # not valid when decoding
         document_mask = document_ids[batch_idx, q_idx] == document_ids[batch_idx, kv_idx]
         padding_mask = attention_mask_2d[batch_idx, q_idx] > 0
         final_mask = causal_mask & padding_mask & document_mask
@@ -383,7 +383,7 @@ def flex_attention_prune_forward(
     score_expsum = torch.detach_copy(attn_res["attn_feature"])
     del attn_res["attn_feature"]
     score_expsum.requires_grad_(False)
-    logger.info(f"exp sum: {score_expsum}, size: {tuple(score_expsum.size())}")
+    # logger.info(f"exp sum: {score_expsum}, size: {tuple(score_expsum.size())}")
     assert torch.all(~torch.isnan(score_expsum)), "nan found in score expsum"
     assert torch.all(score_expsum > 0), "zero found in score expsum"
     assert torch.all(score_expsum < float("inf")), "inf found in score expsum"

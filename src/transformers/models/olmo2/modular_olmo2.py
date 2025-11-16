@@ -2,6 +2,7 @@ from typing import Callable, Optional, Tuple
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from ...cache_utils import Cache
 from ...modeling_utils import ALL_ATTENTION_FUNCTIONS
@@ -196,12 +197,18 @@ class Olmo2Attention(OlmoAttention):
         key_states = self.k_norm(self.k_proj(hidden_states))
         value_states = self.v_proj(hidden_states)
 
-        query_states = query_states.view(hidden_shape).transpose(1, 2)
-        key_states = key_states.view(hidden_shape).transpose(1, 2)
+        query_states_no_pe = query_states.view(hidden_shape).transpose(1, 2)
+        key_states_no_pe = key_states.view(hidden_shape).transpose(1, 2)
         value_states = value_states.view(hidden_shape).transpose(1, 2)
 
         cos, sin = position_embeddings
-        query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+        query_states, key_states = apply_rotary_pos_emb(query_states_no_pe, key_states_no_pe, cos, sin)
+
+        sim = F.cosine_similarity(query_states_no_pe, query_states, dim=-1)
+        avgcosim_q = torch.mean(sim)
+        sim = F.cosine_similarity(key_states_no_pe, key_states, dim=-1)
+        avgcosim_k = torch.mean(sim)
+        infeature_cosim = (avgcosim_q, avgcosim_k)
 
         if past_key_value is not None:
             # sin and cos are specific to RoPE models; cache_position needed for the static cache
@@ -218,7 +225,7 @@ class Olmo2Attention(OlmoAttention):
             else:
                 attention_interface = ALL_ATTENTION_FUNCTIONS[self.config._attn_implementation]
 
-        attn_output, attn_weights = attention_interface(
+        attn_out = attention_interface(
             self,
             query_states,
             key_states,
@@ -229,9 +236,18 @@ class Olmo2Attention(OlmoAttention):
             **kwargs,
         )
 
+        if self.config._attn_implementation == "flex_attention_prune":
+            attn_output, attn_feature, score_spar = attn_out
+        else:
+            attn_output, attn_feature = attn_out
+
         attn_output = attn_output.reshape(*input_shape, -1).contiguous()
         attn_output = self.o_proj(attn_output)
-        return attn_output, attn_weights
+
+        if self.config._attn_implementation == "flex_attention_prune":
+            return attn_output, score_spar, infeature_cosim
+        else:
+            return attn_output, attn_feature, infeature_cosim
 
 
 # The OLMo2 layers are identical to those of the OLMo model except:
@@ -252,6 +268,7 @@ class Olmo2DecoderLayer(OlmoDecoderLayer):
         position_ids: Optional[torch.LongTensor] = None,
         past_key_value: Optional[Cache] = None,
         output_attentions: Optional[bool] = False,
+        output_feature_norms: Optional[bool] = False,
         use_cache: Optional[bool] = False,
         cache_position: Optional[torch.LongTensor] = None,
         position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,  # necessary, but kept here for BC
@@ -260,7 +277,7 @@ class Olmo2DecoderLayer(OlmoDecoderLayer):
         residual = hidden_states
 
         # Self Attention
-        hidden_states, self_attn_weights = self.self_attn(
+        hidden_states, self_attn_weights, infeature_norms = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
             position_ids=position_ids,
@@ -283,6 +300,8 @@ class Olmo2DecoderLayer(OlmoDecoderLayer):
         outputs = (hidden_states,)
         if output_attentions:
             outputs += (self_attn_weights,)
+        if output_feature_norms:
+            outputs += (infeature_norms,)
 
         return outputs
 

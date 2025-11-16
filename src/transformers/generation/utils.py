@@ -165,6 +165,7 @@ class GenerateDecoderOnlyOutput(ModelOutput):
     attentions: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
     hidden_states: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
     past_key_values: Optional[Tuple[Tuple[Tuple[torch.FloatTensor]]]] = None
+    feature_norms: Optional[Tuple[Tuple[torch.FloatTensor, ...]]] = None
 
 
 @dataclass
@@ -770,6 +771,7 @@ class GenerationMixin:
             }
         encoder_kwargs["output_attentions"] = generation_config.output_attentions
         encoder_kwargs["output_hidden_states"] = generation_config.output_hidden_states
+        encoder_kwargs["output_feature_norms"] = generation_config.output_feature_norms
 
         # 3. make sure that encoder returns `ModelOutput`
         model_input_name = model_input_name if model_input_name is not None else self.main_input_name
@@ -2337,6 +2339,7 @@ class GenerationMixin:
 
         # 8. determine generation mode
         generation_mode = generation_config.get_generation_mode(assistant_model)
+        print(f"using generation mode {generation_mode}")
 
         if streamer is not None and (generation_config.num_beams > 1):
             raise ValueError(
@@ -2759,6 +2762,7 @@ class GenerationMixin:
         pad_token_id = generation_config._pad_token_tensor
         output_attentions = generation_config.output_attentions
         output_hidden_states = generation_config.output_hidden_states
+        output_feature_norms = generation_config.output_feature_norms
         output_scores = generation_config.output_scores
         output_logits = generation_config.output_logits
         return_dict_in_generate = generation_config.return_dict_in_generate
@@ -2769,6 +2773,7 @@ class GenerationMixin:
         scores = () if (return_dict_in_generate and output_scores) else None
         raw_logits = () if (return_dict_in_generate and output_logits) else None
         decoder_attentions = () if (return_dict_in_generate and output_attentions) else None
+        feature_norms = () if (return_dict_in_generate and output_feature_norms) else None
         cross_attentions = () if (return_dict_in_generate and output_attentions) else None
         decoder_hidden_states = () if (return_dict_in_generate and output_hidden_states) else None
 
@@ -2879,6 +2884,8 @@ class GenerationMixin:
                         if self.config.is_encoder_decoder
                         else (outputs.hidden_states,)
                     )
+                if output_feature_norms:
+                    feature_norms += (outputs.feature_norms,)
 
             if do_sample:  # sample
                 probs = nn.functional.softmax(next_token_scores, dim=-1)
@@ -2910,6 +2917,7 @@ class GenerationMixin:
                 attentions=decoder_attentions,
                 hidden_states=decoder_hidden_states,
                 past_key_values=model_kwargs.get("past_key_values"),
+                feature_norms=feature_norms,
             )
         else:
             return input_ids
@@ -2963,6 +2971,7 @@ class GenerationMixin:
         penalty_alpha = generation_config.penalty_alpha
         pad_token_id = generation_config._pad_token_tensor
         output_attentions = generation_config.output_attentions
+        output_feature_norms = generation_config.output_feature_norms
         output_hidden_states = generation_config.output_hidden_states
         output_scores = generation_config.output_scores
         output_logits = generation_config.output_logits
@@ -2973,6 +2982,7 @@ class GenerationMixin:
         raw_logits = () if (return_dict_in_generate and output_logits) else None
         scores = () if (return_dict_in_generate and output_scores) else None
         decoder_attentions = () if (return_dict_in_generate and output_attentions) else None
+        feature_norms = () if (return_dict_in_generate and output_feature_norms) else None
         cross_attentions = () if (return_dict_in_generate and output_attentions) else None
         decoder_hidden_states = () if (return_dict_in_generate and output_hidden_states) else None
 
@@ -3082,6 +3092,9 @@ class GenerationMixin:
                     )
                     if self.config.is_encoder_decoder:
                         cross_attentions += (outputs.cross_attentions,)
+
+                if output_feature_norms:
+                    feature_norms += (outputs.feature_norms,)
 
                 if output_hidden_states:
                     decoder_hidden_states += (
@@ -3325,6 +3338,7 @@ class GenerationMixin:
                     attentions=decoder_attentions,
                     hidden_states=decoder_hidden_states,
                     past_key_values=model_kwargs.get("past_key_values"),
+                    feature_norms=feature_norms,
                 )
         else:
             return input_ids
@@ -3374,6 +3388,7 @@ class GenerationMixin:
         # init values
         pad_token_id = generation_config._pad_token_tensor
         output_attentions = generation_config.output_attentions
+        output_feature_norms = generation_config.output_feature_norms
         output_hidden_states = generation_config.output_hidden_states
         output_scores = generation_config.output_scores
         output_logits = generation_config.output_logits
@@ -3385,6 +3400,7 @@ class GenerationMixin:
         scores = () if (return_dict_in_generate and output_scores) else None
         raw_logits = () if (return_dict_in_generate and output_logits) else None
         decoder_attentions = () if (return_dict_in_generate and output_attentions) else None
+        feature_norms = () if (return_dict_in_generate and output_feature_norms) else None
         cross_attentions = () if (return_dict_in_generate and output_attentions) else None
         decoder_hidden_states = () if (return_dict_in_generate and output_hidden_states) else None
 
@@ -3425,6 +3441,7 @@ class GenerationMixin:
 
             # prepare variable output controls (note: some models won't accept all output controls)
             model_inputs.update({"output_attentions": output_attentions} if output_attentions else {})
+            model_inputs.update({"output_feature_norms": output_feature_norms} if output_feature_norms else {})
             model_inputs.update({"output_hidden_states": output_hidden_states} if output_hidden_states else {})
 
             if is_prefill:
@@ -3461,6 +3478,9 @@ class GenerationMixin:
                     )
                     if self.config.is_encoder_decoder:
                         cross_attentions += (outputs.cross_attentions,)
+
+                if output_feature_norms:
+                    feature_norms += (outputs.feature_norms,)
 
                 if output_hidden_states:
                     decoder_hidden_states += (
@@ -3518,6 +3538,7 @@ class GenerationMixin:
                     attentions=decoder_attentions,
                     hidden_states=decoder_hidden_states,
                     past_key_values=model_kwargs.get("past_key_values"),
+                    feature_norms=feature_norms,
                 )
         else:
             return input_ids
@@ -4653,6 +4674,7 @@ class GenerationMixin:
         do_sample = generation_config.do_sample
         output_attentions = generation_config.output_attentions
         output_hidden_states = generation_config.output_hidden_states
+        output_feature_norms = generation_config.output_feature_norms
         output_scores = generation_config.output_scores
         output_logits = generation_config.output_logits
         return_dict_in_generate = generation_config.return_dict_in_generate
@@ -4661,6 +4683,7 @@ class GenerationMixin:
         scores = () if (return_dict_in_generate and output_scores) else None
         raw_logits = () if (return_dict_in_generate and output_logits) else None
         decoder_attentions = () if (return_dict_in_generate and output_attentions) else None
+        feature_norms = () if (return_dict_in_generate and output_feature_norms) else None
         cross_attentions = () if (return_dict_in_generate and output_attentions) else None
         decoder_hidden_states = () if (return_dict_in_generate and output_hidden_states) else None
 
@@ -4819,6 +4842,8 @@ class GenerationMixin:
                             newly_added_length,
                             is_decoder_attention=True,
                         )
+                if output_feature_norms:
+                    feature_norms += (outputs.feature_norms,)
                 if output_hidden_states:
                     if self.config.is_encoder_decoder:
                         decoder_hidden_states = _split_model_outputs(
@@ -4864,6 +4889,7 @@ class GenerationMixin:
                     attentions=decoder_attentions,
                     hidden_states=decoder_hidden_states,
                     past_key_values=model_kwargs.get("past_key_values"),
+                    feature_norms=feature_norms,
                 )
         else:
             return input_ids

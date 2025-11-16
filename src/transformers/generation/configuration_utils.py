@@ -459,6 +459,7 @@ class GenerationConfig(PushToHubMixin):
         # Parameters that define the output variables of `generate`
         self.num_return_sequences = kwargs.pop("num_return_sequences", 1)
         self.output_attentions = kwargs.pop("output_attentions", False)
+        self.output_feature_norms = kwargs.pop("output_feature_norms", False)
         self.output_hidden_states = kwargs.pop("output_hidden_states", False)
         self.output_scores = kwargs.pop("output_scores", False)
         self.output_logits = kwargs.pop("output_logits", None)

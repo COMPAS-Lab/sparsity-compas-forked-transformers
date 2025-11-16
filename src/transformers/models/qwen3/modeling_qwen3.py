@@ -325,6 +325,7 @@ class Qwen3DecoderLayer(nn.Module):
         position_ids: Optional[torch.LongTensor] = None,
         past_key_value: Optional[Cache] = None,
         output_attentions: Optional[bool] = False,
+        output_feature_norms: Optional[bool] = False,
         use_cache: Optional[bool] = False,
         cache_position: Optional[torch.LongTensor] = None,
         position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,  # necessary, but kept here for BC
@@ -335,7 +336,7 @@ class Qwen3DecoderLayer(nn.Module):
         hidden_states = self.input_layernorm(hidden_states)
 
         # Self Attention
-        hidden_states, self_attn_weights = self.self_attn(
+        hidden_states, self_attn_weights, infeature_norms = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
             position_ids=position_ids,
@@ -357,6 +358,8 @@ class Qwen3DecoderLayer(nn.Module):
         outputs = (hidden_states,)
         if output_attentions:
             outputs += (self_attn_weights,)
+        if output_feature_norms:
+            outputs += (infeature_norms,)
 
         return outputs
 
@@ -554,6 +557,7 @@ class Qwen3Model(Qwen3PreTrainedModel):
         inputs_embeds: Optional[torch.FloatTensor] = None,
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
+        output_feature_norms: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
         **flash_attn_kwargs: Unpack[FlashAttentionKwargs],
@@ -604,6 +608,7 @@ class Qwen3Model(Qwen3PreTrainedModel):
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
+        all_feature_norms = () if output_feature_norms else None
 
         for decoder_layer in self.layers[: self.config.num_hidden_layers]:
             if output_hidden_states:
@@ -628,6 +633,7 @@ class Qwen3Model(Qwen3PreTrainedModel):
                     position_ids=position_ids,
                     past_key_value=past_key_values,
                     output_attentions=output_attentions,
+                    output_feature_norms=output_feature_norms,
                     use_cache=use_cache,
                     cache_position=cache_position,
                     position_embeddings=position_embeddings,
@@ -638,18 +644,23 @@ class Qwen3Model(Qwen3PreTrainedModel):
 
             if output_attentions:
                 all_self_attns += (layer_outputs[1],)
+            if output_feature_norms:
+                all_feature_norms += (layer_outputs[2],)
 
         hidden_states = self.norm(hidden_states)
 
         # add hidden states from the last decoder layer
         if output_hidden_states:
             all_hidden_states += (hidden_states,)
+        if output_feature_norms:
+            logger.info(f"Feature norm len: {len(all_feature_norms)}")
 
         return BaseModelOutputWithPast(
             last_hidden_state=hidden_states,
             past_key_values=past_key_values if use_cache else None,
             hidden_states=all_hidden_states,
             attentions=all_self_attns,
+            feature_norms=all_feature_norms,
         )
 
     def _update_causal_mask(
@@ -864,6 +875,7 @@ class Qwen3ForCausalLM(Qwen3PreTrainedModel, GenerationMixin):
         labels: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
+        output_feature_norms: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
         logits_to_keep: Union[int, torch.Tensor] = 0,
@@ -911,6 +923,8 @@ class Qwen3ForCausalLM(Qwen3PreTrainedModel, GenerationMixin):
         if self.config._attn_implementation in ["flex_attention_prune", "eager"]:
             kwargs_wthres["attn_prun_threshold"] = attention_pruning_threshold
 
+        logger.info(f"got feature norm output control as {output_feature_norms}")
+
         outputs: BaseModelOutputWithPast = self.model(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -919,6 +933,7 @@ class Qwen3ForCausalLM(Qwen3PreTrainedModel, GenerationMixin):
             inputs_embeds=inputs_embeds,
             use_cache=use_cache,
             output_attentions=output_attentions,
+            output_feature_norms=output_feature_norms,
             output_hidden_states=output_hidden_states,
             cache_position=cache_position,
             **kwargs_wthres,
@@ -939,6 +954,7 @@ class Qwen3ForCausalLM(Qwen3PreTrainedModel, GenerationMixin):
             past_key_values=outputs.past_key_values,
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
+            feature_norms=outputs.feature_norms,
         )
 
 

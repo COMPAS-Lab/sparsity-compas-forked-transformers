@@ -237,12 +237,18 @@ class GlmAttention(nn.Module):
         hidden_shape = (*input_shape, -1, self.head_dim)
         bsz, q_len, _ = hidden_states.size()
 
-        query_states = self.q_proj(hidden_states).view(hidden_shape).transpose(1, 2)
-        key_states = self.k_proj(hidden_states).view(hidden_shape).transpose(1, 2)
+        query_states_no_pe = self.q_proj(hidden_states).view(hidden_shape).transpose(1, 2)
+        key_states_no_pe = self.k_proj(hidden_states).view(hidden_shape).transpose(1, 2)
         value_states = self.v_proj(hidden_states).view(hidden_shape).transpose(1, 2)
 
         cos, sin = position_embeddings
-        query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+        query_states, key_states = apply_rotary_pos_emb(query_states_no_pe, key_states_no_pe, cos, sin)
+
+        sim = F.cosine_similarity(query_states_no_pe, query_states, dim=-1)
+        avgcosim_q = torch.mean(sim)
+        sim = F.cosine_similarity(key_states_no_pe, key_states, dim=-1)
+        avgcosim_k = torch.mean(sim)
+        infeature_cosim = (avgcosim_q, avgcosim_k)
 
         if past_key_value is not None:
             # sin and cos are specific to RoPE models; cache_position needed for the static cache
@@ -280,9 +286,9 @@ class GlmAttention(nn.Module):
         attn_output = self.o_proj(attn_output)
 
         if self.config._attn_implementation == "flex_attention_prune":
-            return attn_output, score_spar
+            return attn_output, score_spar, infeature_cosim
         else:
-            return attn_output, attn_feature
+            return attn_output, attn_feature, infeature_cosim
 
 
 class GlmRMSNorm(nn.Module):
@@ -357,6 +363,7 @@ class GlmDecoderLayer(nn.Module):
         position_ids: Optional[torch.LongTensor] = None,
         past_key_value: Optional[Cache] = None,
         output_attentions: Optional[bool] = False,
+        output_feature_norms: Optional[bool] = False,
         use_cache: Optional[bool] = False,
         cache_position: Optional[torch.LongTensor] = None,
         position_embeddings: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,  # necessary, but kept here for BC
@@ -367,7 +374,7 @@ class GlmDecoderLayer(nn.Module):
         hidden_states = self.input_layernorm(hidden_states)
 
         # Self Attention
-        hidden_states, self_attn_weights = self.self_attn(
+        hidden_states, self_attn_weights, infeature_norms = self.self_attn(
             hidden_states=hidden_states,
             attention_mask=attention_mask,
             position_ids=position_ids,
@@ -389,6 +396,8 @@ class GlmDecoderLayer(nn.Module):
         outputs = (hidden_states,)
         if output_attentions:
             outputs += (self_attn_weights,)
+        if output_feature_norms:
+            outputs += (infeature_norms,)
 
         return outputs
 
@@ -552,6 +561,7 @@ class GlmModel(GlmPreTrainedModel):
         inputs_embeds: Optional[torch.FloatTensor] = None,
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
+        output_feature_norms: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
         **flash_attn_kwargs: Unpack[FlashAttentionKwargs],
@@ -602,6 +612,7 @@ class GlmModel(GlmPreTrainedModel):
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
+        all_feature_norms = () if output_feature_norms else None
 
         for decoder_layer in self.layers[: self.config.num_hidden_layers]:
             if output_hidden_states:
@@ -626,6 +637,7 @@ class GlmModel(GlmPreTrainedModel):
                     position_ids=position_ids,
                     past_key_value=past_key_values,
                     output_attentions=output_attentions,
+                    output_feature_norms=output_feature_norms,
                     use_cache=use_cache,
                     cache_position=cache_position,
                     position_embeddings=position_embeddings,
@@ -636,18 +648,23 @@ class GlmModel(GlmPreTrainedModel):
 
             if output_attentions:
                 all_self_attns += (layer_outputs[1],)
+            if output_feature_norms:
+                all_feature_norms += (layer_outputs[2],)
 
         hidden_states = self.norm(hidden_states)
 
         # add hidden states from the last decoder layer
         if output_hidden_states:
             all_hidden_states += (hidden_states,)
+        if output_feature_norms:
+            logger.info(f"Feature norm len: {len(all_feature_norms)}")
 
         return BaseModelOutputWithPast(
             last_hidden_state=hidden_states,
             past_key_values=past_key_values if use_cache else None,
             hidden_states=all_hidden_states,
             attentions=all_self_attns,
+            feature_norms=all_feature_norms,
         )
 
     def _update_causal_mask(
@@ -833,6 +850,7 @@ class GlmForCausalLM(GlmPreTrainedModel, GenerationMixin):
         labels: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
+        output_feature_norms: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
         logits_to_keep: Union[int, torch.Tensor] = 0,
@@ -880,6 +898,8 @@ class GlmForCausalLM(GlmPreTrainedModel, GenerationMixin):
         if self.config._attn_implementation in ["flex_attention_prune", "eager"]:
             kwargs_wthres["attn_prun_threshold"] = attention_pruning_threshold
 
+        logger.info(f"got feature norm output control as {output_feature_norms}")
+
         outputs: BaseModelOutputWithPast = self.model(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -888,6 +908,7 @@ class GlmForCausalLM(GlmPreTrainedModel, GenerationMixin):
             inputs_embeds=inputs_embeds,
             use_cache=use_cache,
             output_attentions=output_attentions,
+            output_feature_norms=output_feature_norms,
             output_hidden_states=output_hidden_states,
             cache_position=cache_position,
             **kwargs_wthres,
@@ -908,6 +929,7 @@ class GlmForCausalLM(GlmPreTrainedModel, GenerationMixin):
             past_key_values=outputs.past_key_values,
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
+            feature_norms=outputs.feature_norms,
         )
 
 

@@ -45,6 +45,7 @@ class BaseModelOutput(ModelOutput):
     last_hidden_state: Optional[torch.FloatTensor] = None
     hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
     attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
+    feature_norms: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 @dataclass
@@ -64,6 +65,7 @@ class BaseModelOutputWithNoAttention(ModelOutput):
 
     last_hidden_state: Optional[torch.FloatTensor] = None
     hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
+    feature_norms: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 @dataclass
@@ -157,6 +159,7 @@ class BaseModelOutputWithPast(ModelOutput):
     past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
     hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
     attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
+    feature_norms: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 @dataclass
@@ -334,6 +337,7 @@ class MoECausalLMOutputWithPast(ModelOutput):
     z_loss: Optional[torch.FloatTensor] = None
     aux_loss: Optional[torch.FloatTensor] = None
     router_logits: Optional[Tuple[torch.FloatTensor]] = None
+    feature_norms: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 @dataclass
@@ -366,6 +370,7 @@ class MoEModelOutput(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
     attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
     router_probs: Optional[Tuple[torch.FloatTensor]] = None
+    feature_norms: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 @dataclass
@@ -408,6 +413,7 @@ class MoeModelOutputWithPast(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
     attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
     router_logits: Optional[Tuple[torch.FloatTensor]] = None
+    feature_norms: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 @dataclass
@@ -457,7 +463,7 @@ class MoeCausalLMOutputWithPast(ModelOutput):
     hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
     attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
     router_logits: Optional[Tuple[torch.FloatTensor]] = None
-
+    feature_norms: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 @dataclass
 class MoEModelOutputWithPastAndCrossAttentions(ModelOutput):
@@ -672,6 +678,7 @@ class CausalLMOutput(ModelOutput):
     logits: Optional[torch.FloatTensor] = None
     hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
     attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
+    feature_norms: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 @dataclass
@@ -708,6 +715,7 @@ class CausalLMOutputWithPast(ModelOutput):
     past_key_values: Optional[Tuple[Tuple[torch.FloatTensor]]] = None
     hidden_states: Optional[Tuple[torch.FloatTensor, ...]] = None
     attentions: Optional[Tuple[torch.FloatTensor, ...]] = None
+    feature_norms: Optional[Tuple[torch.FloatTensor, ...]] = None
 
 
 @dataclass
