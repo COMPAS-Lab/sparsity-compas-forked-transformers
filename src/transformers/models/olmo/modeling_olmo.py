@@ -5,8 +5,10 @@
 #                          modular_olmo.py file directly. One of our CI enforces this.
 #                🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨
 from functools import partial
+from math import log
 from typing import Callable, Optional, Tuple, Union
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,6 +27,7 @@ from ...utils import (
     add_start_docstrings,
     add_start_docstrings_to_model_forward,
     can_return_tuple,
+    get_fitted_log_var,
     is_torch_flex_attn_available,
     logging,
     replace_return_docstrings,
@@ -128,6 +131,7 @@ def eager_attention_forward(
     **kwargs,
 ):
     threshold = kwargs.get("attn_prun_threshold", None)
+    enable_head_prune = False
 
     key_states = repeat_kv(key, module.num_key_value_groups)
     value_states = repeat_kv(value, module.num_key_value_groups)
@@ -140,28 +144,60 @@ def eager_attention_forward(
     bsz, h, q_len, hdim = query.size()
     _, _, kv_len, _ = key_states.size()
 
-    if threshold is not None:
-        logger.info(f"eager attn prune threshold: {threshold:.4f}")
-        expsum = torch.sum(torch.exp2(attn_weights), dim=-1)
-        expsum = expsum.view(*(tuple(expsum.size()) + (1,)))
-        normalized = torch.exp(attn_weights) / expsum
-        attn_weights = torch.where(normalized < threshold, float("-inf"), attn_weights)
-        score_nnz = torch.count_nonzero(torch.where(normalized < 1e-3, 0, 1), dim=-1)
-        if q_len > 1:
-            assert q_len == kv_len, f"incorrect prefill attn size {q_len} {kv_len}"
-            per_head_numel = sum(range(1, q_len + 1, 1))
-            per_head_nzeros = torch.sum(score_nnz, dim=-1)
-            score_spar = 1.0 - per_head_nzeros / per_head_numel
-            # logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
-        else:
-            expsum = torch.squeeze(expsum, dim=-1)
-            logger.info(f"expsum: {expsum}, size: {tuple(expsum.size())}")
-            logger.info(f"nzeros: {score_nnz}, size: {tuple(score_nnz.size())}")
-            score_spar = torch.squeeze(1.0 - score_nnz / float(kv_len), dim=-1)
-            logger.info(f"spar: {score_spar}, size: {tuple(score_spar.size())}")
-
-    attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query.dtype)
+    attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32)
     attn_weights = nn.functional.dropout(attn_weights, p=dropout, training=module.training)
+
+    if threshold is not None:
+        # only apply pruning for prefill stage
+        logger.info(f"eager attn prune threshold: {threshold:.2e}")
+        # get hist of each row of head
+
+        hist_x_start, hist_x_end = log(1e-12, 10), log(1, 10)
+        bin_edges = 10 ** np.linspace(hist_x_start, hist_x_end, 100 + 1)
+        bin_edges[0] -= 10 ** (hist_x_start - 1)
+        attn_bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+        for batch_idx in range(attn_weights.size(0)):
+            n_untouched_heads = 0
+            for head_idx in range(attn_weights.size(1)):
+                # get hist of each row of head
+                head = attn_weights[batch_idx, head_idx, :, :].clone().detach().cpu().numpy()
+                hist = np.apply_along_axis(lambda x: np.histogram(x + 1e-12, bin_edges, range=(0.0, 1.0))[0], -1, head)
+                hist = np.apply_along_axis(lambda a: a / np.sum(a), -1, hist)
+
+                # find envelope and smooth it
+                envelope_hist = np.amax(hist, axis=0)
+                kernel = np.ones(5) / 5
+                envelope_hist = np.convolve(envelope_hist, kernel, mode="same")
+                try:
+                    log_var = get_fitted_log_var(attn_bin_centers, envelope_hist)
+                except RuntimeError:
+                    log_var = float("inf")
+
+                if log_var < 100.0:
+                    attn_weights[batch_idx, head_idx, :, :] = torch.where(
+                        attn_weights[batch_idx, head_idx, :, :] < threshold,
+                        0.0,
+                        attn_weights[batch_idx, head_idx, :, :],
+                    )
+                else:
+                    n_untouched_heads += 1
+
+            logger.info(f"skip {n_untouched_heads} heads")
+
+        # extract attention sparsity for prefill and decode
+        # score_nnz = torch.count_nonzero(attn_weights, dim=-1)
+        # if q_len > 1:
+        #     assert q_len == kv_len, f"incorrect prefill attn size {q_len} {kv_len}"
+        #     per_head_numel = sum(range(1, q_len+1, 1))
+        #     per_head_nzeros = torch.sum(score_nnz, dim=-1)
+        #     score_spar = 1. - per_head_nzeros / per_head_numel
+        #     logger.info(f"prefill spar: {score_spar}, size: {tuple(score_spar.size())}")
+        # else:
+        #     score_spar = torch.squeeze(1. - score_nnz / float(kv_len), dim=-1)
+        #     logger.info(f"decode spar: {score_spar}, size: {tuple(score_spar.size())}")
+
+    attn_weights = attn_weights.to(query.dtype)
     attn_output = torch.matmul(attn_weights, value_states)
     attn_output = attn_output.transpose(1, 2).contiguous()
 
@@ -555,10 +591,11 @@ class OlmoModel(OlmoPreTrainedModel):
         all_self_attns = () if output_attentions else None
         all_feature_norms = () if output_feature_norms else None
 
-        for decoder_layer in self.layers[: self.config.num_hidden_layers]:
+        for layer_idx, decoder_layer in enumerate(self.layers[: self.config.num_hidden_layers]):
             if output_hidden_states:
                 all_hidden_states += (hidden_states,)
 
+            logger.info(f"Processing layer {layer_idx}...")
             if self.gradient_checkpointing and self.training:
                 layer_outputs = self._gradient_checkpointing_func(
                     partial(decoder_layer.__call__, **flash_attn_kwargs),
