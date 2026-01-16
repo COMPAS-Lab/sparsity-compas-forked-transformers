@@ -120,8 +120,10 @@ def eager_attention_forward(
     dropout: float = 0.0,
     **kwargs,
 ):
+    random_head_select = False
+    non_head_selection = True
+
     threshold = kwargs.get("attn_prun_threshold", None)
-    enable_head_prune = False
 
     key_states = repeat_kv(key, module.num_key_value_groups)
     value_states = repeat_kv(value, module.num_key_value_groups)
@@ -148,8 +150,10 @@ def eager_attention_forward(
         attn_bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
         for batch_idx in range(attn_weights.size(0)):
-            n_untouched_heads = 0
-            for head_idx in range(attn_weights.size(1)):
+            n_heads = attn_weights.size(1)
+            untouched_head_list = []
+            # gather untouched heads
+            for head_idx in range(n_heads):
                 # get hist of each row of head
                 head = attn_weights[batch_idx, head_idx, :, :].clone().detach().cpu().numpy()
                 hist = np.apply_along_axis(lambda x: np.histogram(x + 1e-12, bin_edges, range=(0.0, 1.0))[0], -1, head)
@@ -164,16 +168,24 @@ def eager_attention_forward(
                 except RuntimeError:
                     log_var = float("inf")
 
-                if log_var < 100.0:
-                    attn_weights[batch_idx, head_idx, :, :] = torch.where(
-                        attn_weights[batch_idx, head_idx, :, :] < threshold,
-                        0.0,
-                        attn_weights[batch_idx, head_idx, :, :],
-                    )
-                else:
-                    n_untouched_heads += 1
+                if log_var >= 100.0:
+                    untouched_head_list.append(head_idx)
 
-            logger.info(f"skip {n_untouched_heads} heads")
+            # apply pruning (random or unrandom)
+            unselected_head_idx = untouched_head_list
+            if random_head_select:
+                unselected_head_idx = np.random.choice(n_heads, size=len(untouched_head_list), replace=False)
+            if non_head_selection:
+                unselected_head_idx = []
+
+            for head_idx in range(n_heads):
+                if head_idx in unselected_head_idx:
+                    continue
+                attn_weights[batch_idx, head_idx, :, :] = torch.where(
+                    attn_weights[batch_idx, head_idx, :, :] < threshold, 0.0, attn_weights[batch_idx, head_idx, :, :]
+                )
+
+            logger.info(f"skip {len(unselected_head_idx)} heads")
 
         # extract attention sparsity for prefill and decode
         # score_nnz = torch.count_nonzero(attn_weights, dim=-1)
