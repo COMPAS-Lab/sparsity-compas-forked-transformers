@@ -26,6 +26,7 @@ import torch
 import torch.utils.checkpoint
 from torch import nn
 import torch.nn.functional as F
+from pathlib import Path
 
 from ...activations import ACT2FN
 from ...cache_utils import Cache, DynamicCache, StaticCache
@@ -189,6 +190,47 @@ def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
     return hidden_states.reshape(batch, num_key_value_heads * n_rep, slen, head_dim)
 
 
+def record_attn_out_stat_diff(origin_attn_output: torch.Tensor, attn_output: torch.Tensor, 
+                             record_file_path: str, pthres: float):
+
+    if pthres is None:
+        pthres = 0.0
+
+    origin_attn_output_mean = origin_attn_output.mean(dim=(-2, -1))
+    origin_attn_output_std = origin_attn_output.std(dim=(-2, -1))
+    attn_output_mean = attn_output.mean(dim=(-2, -1))
+    attn_output_std = attn_output.std(dim=(-2, -1))
+    attn_output_mean_pairs = torch.stack((origin_attn_output_mean, attn_output_mean), dim=-1)
+    attn_output_std_pairs = torch.stack((origin_attn_output_std, attn_output_std), dim=-1)
+    
+    attn_output_mean_pairs = attn_output_mean_pairs.to(float).cpu().detach().numpy()
+    attn_output_std_pairs = attn_output_std_pairs.to(float).cpu().detach().numpy()
+
+    # reshape to (1, *original shape)
+    attn_output_mean_pairs = attn_output_mean_pairs.reshape((1, *attn_output_mean_pairs.shape))
+    attn_output_std_pairs = attn_output_std_pairs.reshape((1, *attn_output_std_pairs.shape))
+
+    attn_output_mean_pairs_rec = None
+    attn_output_std_pairs_rec = None
+
+    rec_fpath_mean = Path(record_file_path) / f"attn_out_mean_diff_{pthres:.0e}.npy"
+    rec_fpath_std = Path(record_file_path) / f"attn_out_std_diff_{pthres:.0e}.npy"
+
+    if rec_fpath_mean.exists() and rec_fpath_std.exists():
+        attn_output_mean_pairs_rec = np.load(rec_fpath_mean)
+        attn_output_std_pairs_rec = np.load(rec_fpath_std)
+        # concat the new data to the old data along first dimension
+        attn_output_mean_pairs_rec = np.concatenate((attn_output_mean_pairs_rec, attn_output_mean_pairs), axis=0)
+        attn_output_std_pairs_rec = np.concatenate((attn_output_std_pairs_rec, attn_output_std_pairs), axis=0)
+    else:
+        attn_output_mean_pairs_rec = attn_output_mean_pairs
+        attn_output_std_pairs_rec = attn_output_std_pairs
+
+    # save the new data
+    np.save(rec_fpath_mean, attn_output_mean_pairs_rec)
+    np.save(rec_fpath_std, attn_output_std_pairs_rec)
+
+
 def eager_attention_forward(
     module: nn.Module,
     query: torch.Tensor,
@@ -199,8 +241,10 @@ def eager_attention_forward(
     dropout: float = 0.0,
     **kwargs,
 ):
-    random_head_select = False
-    non_head_selection = True
+    RANDOM_HEAD_SEL = False
+    NON_HEAD_SEL = True
+    RECOVER_STAT = True
+    RECORD_STAT = True
 
     threshold = kwargs.get("attn_prun_threshold", None)
 
@@ -217,6 +261,14 @@ def eager_attention_forward(
         
     attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32)
     attn_weights = nn.functional.dropout(attn_weights, p=dropout, training=module.training)
+
+    if threshold is not None and (RECOVER_STAT or RECORD_STAT):
+        origin_attn_weights = attn_weights.clone()
+        origin_attn_weights = origin_attn_weights.to(query.dtype)
+        origin_attn_output = torch.matmul(origin_attn_weights, value_states)
+        if RECOVER_STAT:
+            origin_attn_output_mean = origin_attn_output.mean(dim=-1, keepdim=True)
+            origin_attn_output_std = origin_attn_output.std(dim=-1, keepdim=True)
 
     if threshold is not None:
         # only apply pruning for prefill stage
@@ -252,9 +304,9 @@ def eager_attention_forward(
 
             # apply pruning (random or unrandom)
             unselected_head_idx = untouched_head_list
-            if random_head_select:
+            if RANDOM_HEAD_SEL:
                 unselected_head_idx = np.random.choice(n_heads, size=len(untouched_head_list), replace=False)
-            if non_head_selection:
+            if NON_HEAD_SEL:
                 unselected_head_idx = []
                 
             for head_idx in range(n_heads):
@@ -267,20 +319,31 @@ def eager_attention_forward(
 
             logger.info(f"skip {len(unselected_head_idx)} heads")
 
-        # extract attention sparsity for prefill and decode
-        # score_nnz = torch.count_nonzero(attn_weights, dim=-1)
-        # if q_len > 1:
-        #     assert q_len == kv_len, f"incorrect prefill attn size {q_len} {kv_len}"
-        #     per_head_numel = sum(range(1, q_len+1, 1))
-        #     per_head_nzeros = torch.sum(score_nnz, dim=-1)
-        #     score_spar = 1. - per_head_nzeros / per_head_numel
-        #     logger.info(f"prefill spar: {score_spar}, size: {tuple(score_spar.size())}")
-        # else:
-        #     score_spar = torch.squeeze(1. - score_nnz / float(kv_len), dim=-1)
-        #     logger.info(f"decode spar: {score_spar}, size: {tuple(score_spar.size())}")
+            # extract attention sparsity for prefill and decode
+            score_nnz = torch.count_nonzero(attn_weights, dim=-1)
+            if q_len > 1:
+                assert q_len == kv_len, f"incorrect prefill attn size {q_len} {kv_len}"
+                per_head_numel = sum(range(1, q_len+1, 1))
+                per_head_nzeros = torch.sum(score_nnz, dim=-1)
+                score_spar = 1. - per_head_nzeros / per_head_numel
+                logger.info(f"prefill spar: {score_spar}, size: {tuple(score_spar.size())}")
+            else:
+                score_spar = torch.squeeze(1. - score_nnz / float(kv_len), dim=-1)
+                logger.info(f"decode spar: {score_spar}, size: {tuple(score_spar.size())}")
 
     attn_weights = attn_weights.to(query.dtype)
     attn_output = torch.matmul(attn_weights, value_states)
+
+    if threshold is not None and RECOVER_STAT:
+        logger.info("recover attn output mean and std")
+        attn_output_mean = attn_output.mean(dim=-1, keepdim=True)
+        attn_output_std = attn_output.std(dim=-1, keepdim=True) + 1e-6
+        attn_output = (attn_output - attn_output_mean) / attn_output_std * origin_attn_output_std + origin_attn_output_mean
+    
+    if RECORD_STAT:
+        record_file_path = "/lustre/nvwulf/home/tiji/proj/scale_law/data/attn_o_stat"
+        record_attn_out_stat_diff(origin_attn_output, attn_output, record_file_path, threshold)
+
     attn_output = attn_output.transpose(1, 2).contiguous()
 
     return attn_output, attn_weights
