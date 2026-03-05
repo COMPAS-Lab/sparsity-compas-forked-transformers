@@ -165,7 +165,7 @@ def eager_attention_forward(
     RANDOM_HEAD_SEL = False
     NON_HEAD_SEL = True
     RECOVER_STAT = True
-    RECORD_STAT = True
+    RECORD_STAT = False
 
     threshold = kwargs.get("attn_prun_threshold", None)
 
@@ -188,8 +188,8 @@ def eager_attention_forward(
         origin_attn_weights = origin_attn_weights.to(query.dtype)
         origin_attn_output = torch.matmul(origin_attn_weights, value_states)
         if RECOVER_STAT:
-            origin_attn_output_mean = origin_attn_output.mean(dim=-1, keepdim=True)
-            origin_attn_output_std = origin_attn_output.std(dim=-1, keepdim=True)
+            origin_attn_output_mean = origin_attn_output.mean(dim=(-1, -2), keepdim=True)
+            origin_attn_output_std = origin_attn_output.std(dim=(-1, -2), keepdim=True)
 
     if threshold is not None:
         # only apply pruning for prefill stage
@@ -256,8 +256,8 @@ def eager_attention_forward(
 
     if threshold is not None and RECOVER_STAT:
         logger.info("recover attn output mean and std")
-        attn_output_mean = attn_output.mean(dim=-1, keepdim=True)
-        attn_output_std = attn_output.std(dim=-1, keepdim=True) + 1e-6
+        attn_output_mean = attn_output.mean(dim=(-1, -2), keepdim=True)
+        attn_output_std = attn_output.std(dim=(-1, -2), keepdim=True) + 1e-6
         attn_output = (
             attn_output - attn_output_mean
         ) / attn_output_std * origin_attn_output_std + origin_attn_output_mean
